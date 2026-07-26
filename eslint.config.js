@@ -27,5 +27,5 @@ export default ts.config(
       },
     },
   },
-  { ignores: ['dist/', 'node_modules/', 'src-tauri/'] },
+  { ignores: ['dist/', 'dist-pages/', 'node_modules/', 'src-tauri/'] },
 );
