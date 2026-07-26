@@ -82,6 +82,29 @@ class WeatherStore {
       this.place = this.data.place;
     }
   }
+
+  /** Load weather for the device's current position (Cmd+G / locate button). */
+  locate(): void {
+    if (typeof navigator === 'undefined' || !('geolocation' in navigator))
+      return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        this.demo = null;
+        void this.load(
+          {
+            name: 'my location',
+            country: '',
+            latitude: Math.round(pos.coords.latitude * 100) / 100,
+            longitude: Math.round(pos.coords.longitude * 100) / 100,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+          true,
+        );
+      },
+      () => {},
+      { timeout: 8000 },
+    );
+  }
 }
 
 export const weather = new WeatherStore();

@@ -18,9 +18,12 @@
   import SettingsView from '../settings/SettingsView.svelte';
   import { weather } from '../../stores/weather.svelte';
   import { settings } from '../../stores/settings.svelte';
+  import { favorites } from '../../stores/favorites.svelte';
   import { air } from '../../stores/air.svelte';
   import { tempToColor, darken } from '../../utils/temp-color';
   import { formatTime } from '../../utils/time';
+  import { randomCity } from '../../utils/cities';
+  import { isTauri, invoke } from '../../utils/tauri';
 
   interface Props {
     /** Responsive full-viewport mode (standalone web app). */
@@ -32,6 +35,8 @@
   let { standalone = false, settingsOpen = $bindable(false) }: Props = $props();
 
   let now = $state(new Date());
+  /** Focus the city search when settings is opened via Cmd+F. */
+  let focusSearch = $state(false);
 
   onMount(() => {
     const t = setInterval(() => (now = new Date()), 30_000);
@@ -45,11 +50,66 @@
     }
   });
 
+  function loadCity(place: Parameters<typeof weather.load>[0]) {
+    weather.demo = null;
+    weather.load(place, true);
+  }
+
   function onKeydown(e: KeyboardEvent) {
-    if (e.key === 'Escape') settingsOpen = false;
-    else if (e.key === 's' && (e.metaKey || e.ctrlKey)) {
+    if (e.key === 'Escape') {
+      settingsOpen = false;
+      return;
+    }
+    if (!(e.metaKey || e.ctrlKey)) return;
+
+    // Settings toggle works in every build (the overlay owns the search).
+    if (e.key === 's') {
       e.preventDefault();
+      focusSearch = false;
       settingsOpen = !settingsOpen;
+      return;
+    }
+
+    // The remaining shortcuts collide with browser shortcuts (Cmd+W/R/F), so
+    // they are only active inside the Tauri popover.
+    if (!isTauri()) return;
+
+    switch (e.key) {
+      case 'f': // open search
+        e.preventDefault();
+        focusSearch = true;
+        settingsOpen = true;
+        break;
+      case 'g': // my location
+        e.preventDefault();
+        weather.locate();
+        break;
+      case 'w': // random city (easter egg)
+        e.preventDefault();
+        loadCity(randomCity(weather.place));
+        break;
+      case 'e': // refresh weather data
+        e.preventDefault();
+        weather.load(weather.place, true);
+        break;
+      case 'r': // reload the webview
+        e.preventDefault();
+        location.reload();
+        break;
+      case 'q': // quit the app
+        e.preventDefault();
+        void invoke('quit_app');
+        break;
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5': {
+        e.preventDefault();
+        const fav = favorites.list[Number(e.key) - 1];
+        if (fav) loadCity(fav);
+        break;
+      }
     }
   }
 
@@ -104,7 +164,11 @@
     <SettingsView
       {accent}
       {accentDeep}
-      onclose={() => (settingsOpen = false)}
+      autofocus={focusSearch}
+      onclose={() => {
+        settingsOpen = false;
+        focusSearch = false;
+      }}
     />
   {/if}
 </div>

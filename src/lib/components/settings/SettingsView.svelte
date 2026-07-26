@@ -5,6 +5,7 @@
    * favorites, units, language, effects. No API key field anymore — that's
    * the point of the rebuild.
    */
+  import { onMount } from 'svelte';
   import Waves from '../effects/Waves.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
   import { searchPlaces, type Place } from '../../services/open-meteo';
@@ -19,10 +20,18 @@
   interface Props {
     accent: string;
     accentDeep: string;
+    /** Focus the city search on open (Cmd+F). */
+    autofocus?: boolean;
     onclose: () => void;
   }
 
-  let { accent, accentDeep, onclose }: Props = $props();
+  let { accent, accentDeep, autofocus = false, onclose }: Props = $props();
+
+  let searchInput = $state<HTMLInputElement>();
+
+  onMount(() => {
+    if (autofocus) searchInput?.focus();
+  });
 
   const de = $derived(settings.locale === 'de');
 
@@ -89,6 +98,7 @@
       <span class="caption">{de ? 'Stadt' : 'City'}</span>
       <input
         type="text"
+        bind:this={searchInput}
         bind:value={query}
         oninput={onInput}
         placeholder={weather.place.name +
