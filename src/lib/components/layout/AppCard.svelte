@@ -178,7 +178,7 @@
     position: relative;
     width: var(--popover-width);
     height: var(--popover-height);
-    --color-zone: 58%;
+    --color-zone: 64%;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
