@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+dist-pages/
+
+# rust / tauri
+/src-tauri/target/
+/src-tauri/gen/
+
+# logs
+*.log
+
+# os / editor
+.DS_Store
+.vite/

@@ -1,0 +1,54 @@
+/* Temps design tokens — palette lives in utils/temp-color.ts (design DNA). */
+
+/* Rubik is self-hosted in the Tauri build (Phase 2); the web scaffold falls
+   back through the same geometric-grotesque family. */
+:root {
+  --font-ui:
+    'Rubik', 'Rubik Variable', -apple-system, 'Segoe UI', 'Helvetica Neue',
+    sans-serif;
+
+  --ink-strong: rgba(255, 255, 255, 0.96);
+  --ink-soft: rgba(255, 255, 255, 0.72);
+  --ink-faint: rgba(255, 255, 255, 0.45);
+
+  --paper: #ffffff;
+  --paper-ink: #6b7280;
+  --paper-ink-strong: #374151;
+
+  --popover-width: 340px;
+  --popover-height: 480px;
+  --wave-height: 64px;
+
+  --bg-transition: background-color 600ms ease;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  background: #e7e5e0;
+}
+
+button {
+  font: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
