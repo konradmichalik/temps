@@ -1,12 +1,12 @@
 <script lang="ts">
   /**
-   * Renders a weather-iconic sprite symbol with multi-color support.
-   * The multi-color rules from weather-iconic-enhanced.css are inlined here
-   * (the package's exports map doesn't expose that stylesheet), driven by
-   * the same custom properties: primary = highlight (lightning, sun rays,
-   * mercury), secondary = base (clouds, bodies, single-element icons).
+   * Renders a weather-iconic symbol with multi-color support. The symbol markup
+   * is inlined into the light DOM (not `<use>`) so the per-path fill rules below
+   * actually apply — see utils/weather-sprite.ts. Custom properties drive the
+   * two tones: primary = highlight (lightning, sun rays, mercury), secondary =
+   * base (clouds, bodies, single-element icons).
    */
-  import spritesUrl from 'weather-iconic/sprites';
+  import { weatherSymbol } from '../../utils/weather-sprite';
 
   interface Props {
     name: string;
@@ -25,6 +25,8 @@
     secondary = '#ffffff',
     label,
   }: Props = $props();
+
+  const symbol = $derived(weatherSymbol(name));
 </script>
 
 <span
@@ -34,15 +36,18 @@
   style:width="{size}px"
   style:height="{size}px"
 >
-  <svg
-    role="img"
-    aria-label={label ?? name.replace(/-/g, ' ')}
-    width={size}
-    height={size}
-    viewBox="0 0 32 32"
-  >
-    <use href="{spritesUrl}#weather-{name}" />
-  </svg>
+  {#if symbol}
+    <svg
+      role="img"
+      aria-label={label ?? name.replace(/-/g, ' ')}
+      width={size}
+      height={size}
+      viewBox={symbol.viewBox}
+    >
+      <!-- eslint-disable-next-line svelte/no-at-html-tags -- static, trusted sprite markup -->
+      {@html symbol.inner}
+    </svg>
+  {/if}
 </span>
 
 <style>
