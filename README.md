@@ -46,6 +46,7 @@ npm run tauri:dev  # full macOS app (tray + popover) — needs the Rust toolchai
 npm run test       # vitest (28 tests)
 npm run check      # svelte-check
 npm run build      # production web build
+npm run build:pages # landing page → dist-pages/ (GitHub Pages)
 npm run tauri:build # .app + .dmg → src-tauri/target/release/bundle/
 ```
 
@@ -54,13 +55,14 @@ to demo data automatically.
 
 ## Deployment targets
 
-One codebase, three shells (all through `utils/fetch.ts`):
+One codebase, four shells (all through `utils/fetch.ts`):
 
 | Target | Entry | Notes |
 |---|---|---|
 | Tauri popover | `Popover.svelte` (via `main.ts` when `isTauri()`) | fixed 340x480 at the tray |
-| Landing demo / dev harness | `index.html` | card + scenario switcher |
+| Dev harness | `index.html` | card + scenario switcher (browser) |
 | Standalone web app | `app.html` | responsive, installable (manifest, `display: standalone`), edge-to-edge on mobile with safe-area insets, theme-color follows the temperature color, geolocation button |
+| Landing page | `src/landing/` → `dist-pages/` | live hero demo + install/shortcuts/credits; `npm run build:pages` |
 
 Type scales with the card via container queries (`cqw`), so popover,
 phone and desktop card share identical proportions.

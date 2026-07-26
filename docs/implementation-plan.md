@@ -14,8 +14,14 @@
 > Rust-Refresh-Heartbeat (`polling.rs`) → `refresh`-Events, Regen-Notification
 > (`services/rain-alert.ts` pure + getestet, `stores/rain-alert.svelte.ts`).
 > Popover-Entry: `main.ts` verzweigt auf `isTauri()` → `Popover.svelte`.
-> Offen: Phase 0 (manuelle Repo-Migration), Landing-Sektion aus Phase 5, sowie
-> der Live-GUI-Feinschliff (Popover-Positionierung/Effekte am echten Tray).
+> **Phase 4 komplett:** das volle Shortcut-Schema (⌘⇧W/⌘D/⌘F/⌘G/⌘W/⌘E/⌘R/⌘Q/⌘1–5,
+> `utils/cities.ts`, `weather.locate()`), im Web auf browser-sichere Shortcuts
+> reduziert. **Phase 5 (Landing) umgesetzt:** `vite.landing.config.ts` +
+> `src/landing/` (Live-AppCard-Hero, Feature-Strip, Shortcut-Übersicht, Credits),
+> Build via `npm run build:pages` → `dist-pages/` (base `/temps/`).
+> Offen: Phase 0 (manuelle Repo-Migration), Phase 5 Ship-Reste (CI-Workflows,
+> Homebrew-Cask, Notarisierung/Signierung), sowie der Live-GUI-Feinschliff
+> (Popover-Positionierung/Effekte am echten Tray, Icon-Sichtprüfung).
 > Abweichungen vom Plan: (1) Tailwind zugunsten von Scoped CSS + Design-Tokens
 > weggelassen. (2) Polling bleibt bewusst schlank — die Wetter-Logik lebt in den
 > getesteten TS-Services; Rust liefert nur den Heartbeat. (3) Settings bleiben
