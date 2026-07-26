@@ -5,6 +5,7 @@
   import { settings } from '../../stores/settings.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
   import SunArc from '../ui/SunArc.svelte';
+  import Waves from '../effects/Waves.svelte';
   import { air } from '../../stores/air.svelte';
   import { aqiLabel, pollenLabel } from '../../services/air-quality';
 
@@ -96,10 +97,11 @@
 <div class="color-zone" class:in={active}>
   <div class="compact">
     <span class="st" style:--d="0ms"
-      ><WeatherIcon name={wmoToIcon(c.weatherCode, c.isDay)} size={44} /></span
+      ><WeatherIcon name={wmoToIcon(c.weatherCode, c.isDay)} size={40} /></span
     >
     <span class="temp st" style:--d="80ms">{Math.round(c.temperature)}°</span>
   </div>
+  <Waves animated={settings.waveAnimation} />
 </div>
 
 <div class="paper-zone" class:in={active}>
@@ -154,8 +156,12 @@
     transition-delay: var(--d);
   }
 
+  /* Details uses a slim color band (plan §7), not the shared 58% zone: the
+     opaque paper-zone below covers the shared waves, giving the tile grid the
+     whole card. The band gets its own waves at the color→white edge. */
   .color-zone {
-    height: var(--color-zone);
+    position: relative;
+    height: 34%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -164,16 +170,19 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    transform: translateY(-16px);
+    transform: translateY(-6px);
   }
   .temp {
-    font-size: clamp(42px, 14cqw, 64px);
+    font-size: clamp(40px, 13cqw, 60px);
     font-weight: 300;
     color: var(--ink-strong);
   }
   .paper-zone {
+    position: relative;
+    z-index: 1;
     flex: 1;
-    padding: 8px 18px 20px;
+    background: var(--paper);
+    padding: 12px 18px 18px;
     overflow-y: auto;
   }
   .sunrow {

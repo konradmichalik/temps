@@ -17,7 +17,8 @@ export interface WeatherSymbol {
 
 const symbols = new Map<string, WeatherSymbol>();
 
-const RE = /<symbol\s+id="([^"]+)"\s+viewBox="([^"]+)"\s*>([\s\S]*?)<\/symbol>/g;
+const RE =
+  /<symbol\s+id="([^"]+)"\s+viewBox="([^"]+)"\s*>([\s\S]*?)<\/symbol>/g;
 for (let m = RE.exec(spriteRaw); m !== null; m = RE.exec(spriteRaw)) {
   symbols.set(m[1], { viewBox: m[2], inner: m[3] });
 }

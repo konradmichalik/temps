@@ -103,6 +103,10 @@
     inset: 0;
     overflow: hidden;
     pointer-events: none;
+    /* Fade the particles out before the color→white edge so rain/snow
+       dissolves into the waves instead of hard-clipping in a straight line. */
+    -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 78%, transparent 100%);
   }
 
   .rain i {
