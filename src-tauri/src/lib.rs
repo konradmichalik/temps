@@ -135,8 +135,7 @@ pub fn run() {
                     .register(DEFAULT_GLOBAL_SHORTCUT)
                     .is_ok()
                 {
-                    *current_shortcut().lock().unwrap() =
-                        Some(DEFAULT_GLOBAL_SHORTCUT.to_string());
+                    *current_shortcut().lock().unwrap() = Some(DEFAULT_GLOBAL_SHORTCUT.to_string());
                 } else {
                     eprintln!("[temps] failed to register default global shortcut");
                 }
@@ -265,8 +264,10 @@ fn setup_macos(app: &mut tauri::App) {
 
     let screen_block = make_reconfig_block(app.handle().clone());
     unsafe {
-        let center: *const AnyObject =
-            objc2::msg_send![AnyClass::get(c"NSNotificationCenter").unwrap(), defaultCenter];
+        let center: *const AnyObject = objc2::msg_send![
+            AnyClass::get(c"NSNotificationCenter").unwrap(),
+            defaultCenter
+        ];
         let name = objc2_foundation::NSString::from_str(
             "NSApplicationDidChangeScreenParametersNotification",
         );

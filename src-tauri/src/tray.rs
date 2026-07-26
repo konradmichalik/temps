@@ -206,8 +206,7 @@ pub fn create_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
                         let scale = window.scale_factor().unwrap_or(1.0);
                         let pos = rect.position.to_physical::<i32>(scale);
                         let size = rect.size.to_physical::<u32>(scale);
-                        *LAST_TRAY_RECT.lock().unwrap() =
-                            Some((pos, (size.width, size.height)));
+                        *LAST_TRAY_RECT.lock().unwrap() = Some((pos, (size.width, size.height)));
                     }
                 }
                 toggle_main_window(app);
