@@ -62,19 +62,26 @@
     return MID + Math.sin(Math.PI * phase) * NIGHT_AMP;
   }
 
+  // The window is centered on "now": screen fraction 0.5 always maps to the
+  // current time, so the marker sits dead center and the cycle scrolls under it.
+  function hAt(x01: number): number {
+    const h = (nowF - 0.5 + x01) % 1;
+    return h < 0 ? h + 1 : h;
+  }
+
   const path = $derived.by(() => {
     const N = 96;
     let d = '';
     for (let i = 0; i <= N; i++) {
-      const h = i / N;
-      d += `${i === 0 ? 'M' : 'L'} ${(h * W).toFixed(1)} ${curveY(h).toFixed(1)}`;
+      const x01 = i / N;
+      d += `${i === 0 ? 'M' : 'L'} ${(x01 * W).toFixed(1)} ${curveY(hAt(x01)).toFixed(1)}`;
     }
     return d;
   });
 
-  // Marker position in the overlay: x as a percentage, y mapped through the
-  // rendered height so it lands on the (vertically un-stretched) curve.
-  const markerLeft = $derived(nowF * 100);
+  // Marker: always horizontally centered (now); y mapped through the rendered
+  // height so it lands on the (vertically un-stretched) curve.
+  const markerLeft = 50;
   const markerTop = $derived((curveY(nowF) / VB_H) * SVG_H);
 
   // Eight short rays around the sun body (static geometry, colored at runtime).
@@ -151,7 +158,7 @@
     <span class="t">
       <WeatherIcon
         name="sunrise"
-        size={16}
+        size={20}
         secondary={accent}
         primary={accentDeep}
       />
@@ -160,7 +167,7 @@
     <span class="t">
       <WeatherIcon
         name="sunset"
-        size={16}
+        size={20}
         secondary={accent}
         primary={accentDeep}
       />
