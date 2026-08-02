@@ -99,7 +99,8 @@ pub fn request(app: &AppHandle) -> Result<(f64, f64), String> {
     let (tx, rx) = std::sync::mpsc::channel::<LocResult>();
     app.run_on_main_thread(move || start(tx))
         .map_err(|e| e.to_string())?;
-    rx.recv_timeout(Duration::from_secs(15))
+    // Generous: the first call also shows the OS permission prompt.
+    rx.recv_timeout(Duration::from_secs(30))
         .unwrap_or_else(|_| Err("timeout".into()))
 }
 
