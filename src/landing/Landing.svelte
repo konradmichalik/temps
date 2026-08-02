@@ -8,9 +8,10 @@
   import { onMount } from 'svelte';
   import AppCard from '../lib/components/layout/AppCard.svelte';
   import { weather } from '../lib/stores/weather.svelte';
+  import { APP_VERSION } from '../lib/version';
   import type { DemoScenario } from '../lib/utils/demo-data';
 
-  const VERSION = '2.0.0-beta.1';
+  const VERSION = APP_VERSION;
   const REPO = 'https://github.com/konradmichalik/temps';
 
   const SCENARIOS: { id: DemoScenario; label: string }[] = [

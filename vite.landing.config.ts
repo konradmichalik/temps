@@ -1,12 +1,18 @@
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+
+const version = JSON.parse(
+  readFileSync(resolve(__dirname, 'package.json'), 'utf8'),
+).version as string;
 
 // Landing page build for GitHub Pages (konradmichalik.github.io/temps).
 // The hero embeds the real app (same Svelte components, browser-fetch path),
 // so the live demo needs no separate implementation.
 export default defineConfig({
   plugins: [svelte()],
+  define: { __APP_VERSION__: JSON.stringify(version) },
   root: resolve(__dirname, 'src/landing'),
   publicDir: resolve(__dirname, 'public'),
   base: '/temps/',
