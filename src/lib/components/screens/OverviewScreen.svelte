@@ -1,10 +1,10 @@
 <script lang="ts">
   import type { WeatherData } from '../../services/open-meteo';
-  import { wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
+  import { wmoToIcon } from '../../utils/wmo-icons';
   import { formatDateLine, formatDayShort } from '../../utils/time';
   import { settings } from '../../stores/settings.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
-  import NowcastBar from '../ui/NowcastBar.svelte';
+  import CurrentReading from '../ui/CurrentReading.svelte';
 
   interface Props {
     data: WeatherData;
@@ -17,34 +17,13 @@
 
   const c = $derived(data.current);
   const forecast = $derived(data.daily.slice(1, 5));
-  const feelsDiff = $derived(
-    Math.abs(c.apparentTemperature - c.temperature) >= 3,
-  );
+
+  // Which forecast tile is pinned open (tap/click). Hover + keyboard focus
+  // reveal the low temp via CSS; this handles touch and a sticky click.
+  let pinned = $state<number | null>(null);
 </script>
 
-<div class="color-zone" class:in={active}>
-  <div class="hero">
-    <span class="st" style:--d="0ms"
-      ><WeatherIcon name={wmoToIcon(c.weatherCode, c.isDay)} size={64} /></span
-    >
-    <div class="reading">
-      <span class="temp st" style:--d="70ms">{Math.round(c.temperature)}°</span>
-      <span class="rule st" style:--d="150ms"></span>
-      <span class="condition st" style:--d="200ms"
-        >{wmoToLabel(c.weatherCode, settings.locale)}</span
-      >
-      {#if feelsDiff}
-        <span class="feels st" style:--d="260ms"
-          >{settings.locale === 'de' ? 'gefühlt' : 'feels like'}
-          {Math.round(c.apparentTemperature)}°</span
-        >
-      {/if}
-      <span class="st" style:--d="300ms">
-        <NowcastBar slots={data.minutely15} />
-      </span>
-    </div>
-  </div>
-</div>
+<CurrentReading current={c} nowcast={data.minutely15} {active} />
 
 <div class="paper-zone" class:in={active}>
   <div class="meta st" style:--d="240ms">
@@ -58,86 +37,50 @@
     <span>{data.place.name.toLowerCase()}, {data.place.country}</span>
   </div>
   <ul class="forecast">
-    {#each forecast as day (day.date.getTime())}
-      <li class="st" style:--d="{300 + forecast.indexOf(day) * 70}ms">
-        <span class="day"
-          >{formatDayShort(day.date, data.timezone, settings.locale)}</span
+    {#each forecast as day, i (day.date.getTime())}
+      <li class="st" style:--d="{300 + i * 70}ms">
+        <button
+          type="button"
+          class="tile"
+          class:pinned={pinned === i}
+          aria-pressed={pinned === i}
+          aria-label="{formatDayShort(
+            day.date,
+            data.timezone,
+            settings.locale,
+          )}:
+          {Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°"
+          onclick={() => (pinned = pinned === i ? null : i)}
         >
-        <WeatherIcon
-          name={wmoToIcon(day.weatherCode, true)}
-          size={28}
-          secondary={accent}
-          primary={accentDeep}
-        />
-        <span class="max" style:color={accent}>{Math.round(day.tempMax)}°</span>
+          <span class="day"
+            >{formatDayShort(day.date, data.timezone, settings.locale)}</span
+          >
+          <WeatherIcon
+            name={wmoToIcon(day.weatherCode, true)}
+            size={28}
+            secondary={accent}
+            primary={accentDeep}
+          />
+          <span class="max" style:color={accent}
+            >{Math.round(day.tempMax)}°</span
+          >
+          <span class="min">{Math.round(day.tempMin)}°</span>
+        </button>
       </li>
     {/each}
   </ul>
 </div>
 
 <style>
-  /* Staggered entrance: each element fades/rises on its own beat when the
-     screen becomes active; leaving screens fade out fast (no delay). */
-  .st {
-    opacity: 0;
-    transform: translateY(10px);
-    transition:
-      opacity 260ms ease,
-      transform 260ms ease;
-    transition-delay: 0ms;
-  }
-  .in .st {
-    opacity: 1;
-    transform: translateY(0);
-    transition-duration: 420ms;
-    transition-delay: var(--d);
-  }
-
-  .color-zone {
-    height: var(--color-zone);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .hero {
-    display: flex;
-    align-items: flex-start;
-    gap: 18px;
-    transform: translateY(-10px);
-  }
-  .reading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .temp {
-    font-size: clamp(56px, 18.8cqw, 86px);
-    font-weight: 300;
-    color: var(--ink-strong);
-    line-height: 1;
-  }
-  .rule {
-    width: 26px;
-    height: 1px;
-    background: var(--ink-faint);
-    margin: 10px 0 8px;
-  }
-  .condition {
-    font-size: clamp(13px, 4.4cqw, 18px);
-    color: var(--ink-soft);
-  }
-  .feels {
-    margin-top: 4px;
-    font-size: 11px;
-    color: var(--ink-faint);
-  }
-
+  /* Center the date + forecast block vertically so it isn't top-loaded with a
+     wide band of empty white beneath it. */
   .paper-zone {
     flex: 1;
     padding: 6px 22px 22px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    justify-content: center;
+    gap: 18px;
   }
   .meta {
     display: flex;
@@ -151,15 +94,17 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
   }
-  .forecast li {
+  .forecast li:not(:last-child) {
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .tile {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    width: 100%;
     padding: 4px 0;
-  }
-  .forecast li:not(:last-child) {
-    border-right: 1px solid rgba(0, 0, 0, 0.06);
+    cursor: pointer;
   }
   .day {
     font-size: 10px;
@@ -168,5 +113,23 @@
   }
   .max {
     font-size: clamp(12px, 3.8cqw, 16px);
+  }
+  /* Low temp: revealed on hover, keyboard focus, or a sticky tap (.pinned).
+     Its line is always reserved, so revealing it never shifts the layout. */
+  .min {
+    font-size: clamp(11px, 3.4cqw, 14px);
+    color: var(--paper-ink);
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+  .tile:hover .min,
+  .tile:focus-visible .min,
+  .tile.pinned .min {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .min {
+      transition: none;
+    }
   }
 </style>
