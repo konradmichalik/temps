@@ -83,13 +83,18 @@
 </div>
 
 {#if detail}
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Day forecast">
+  <div class="sheet-layer">
     <button
-      class="backdrop"
+      class="scrim"
       aria-label={de ? 'Schließen' : 'Close'}
       onclick={() => (openDay = null)}
     ></button>
-    <div class="sheet">
+    <div
+      class="sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Day forecast"
+    >
       <button
         class="x"
         bind:this={closeBtn}
@@ -194,38 +199,41 @@
     font-size: clamp(12px, 3.8cqw, 16px);
   }
 
-  /* Detail modal: overlays the slide (doesn't shift the base layout). */
-  .modal {
+  /* Detail sheet: slides up into the white paper area (doesn't shift the base
+     layout). A transparent scrim over the color band closes it on outside tap;
+     the X is the explicit affordance. */
+  .sheet-layer {
     position: absolute;
     inset: 0;
     z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: fade 160ms ease;
   }
-  .backdrop {
+  .scrim {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.28);
+    background: transparent;
     border: none;
     cursor: pointer;
   }
   .sheet {
-    position: relative;
-    z-index: 1;
-    width: 78%;
-    max-width: 270px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: var(--color-zone);
     background: var(--paper);
-    border-radius: 16px;
-    padding: 18px 18px 20px;
-    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.28);
-    animation: pop 180ms ease;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12);
+    padding: 22px 26px calc(20px + var(--safe-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 18px;
+    animation: slideup 280ms cubic-bezier(0.22, 1, 0.36, 1);
   }
   .x {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 12px;
+    right: 14px;
     padding: 4px;
     color: var(--paper-ink);
   }
@@ -235,10 +243,10 @@
   .head {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
   }
   .date {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
     color: var(--paper-ink-strong);
   }
@@ -249,7 +257,7 @@
   .stats {
     display: flex;
     justify-content: space-between;
-    margin-top: 16px;
+    padding: 0 4px;
   }
   .stat {
     display: flex;
@@ -258,7 +266,7 @@
     gap: 2px;
   }
   .stat .v {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 500;
     color: var(--paper-ink-strong);
   }
@@ -268,19 +276,12 @@
     text-transform: lowercase;
   }
 
-  @keyframes fade {
+  @keyframes slideup {
     from {
-      opacity: 0;
-    }
-  }
-  @keyframes pop {
-    from {
-      opacity: 0;
-      transform: translateY(8px) scale(0.96);
+      transform: translateY(100%);
     }
   }
   @media (prefers-reduced-motion: reduce) {
-    .modal,
     .sheet {
       animation: none;
     }
