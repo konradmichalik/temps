@@ -18,12 +18,10 @@
   const c = $derived(data.current);
   const forecast = $derived(data.daily.slice(1, 5));
 
-  // Tap/click a day to pin its detail panel (high/low + rain chance); tap again
-  // to close. Kept in range so a data refresh can't point at a missing day.
-  let pinned = $state<number | null>(null);
-  const selected = $derived(
-    pinned !== null && pinned < forecast.length ? forecast[pinned] : null,
-  );
+  // The detail panel is always shown (no layout jump); tapping a day just
+  // switches which one it describes. Defaults to the first upcoming day.
+  let picked = $state(0);
+  const selected = $derived(forecast[picked] ?? forecast[0] ?? null);
 
   const de = $derived(settings.locale === 'de');
 </script>
@@ -48,8 +46,8 @@
         <button
           type="button"
           class="tile"
-          class:pinned={pinned === i}
-          aria-pressed={pinned === i}
+          class:picked={picked === i}
+          aria-pressed={picked === i}
           aria-label="{formatDayShort(
             day.date,
             data.timezone,
@@ -59,7 +57,7 @@
             ? 'min'
             : 'low'} {Math.round(day.tempMin)}°, {de ? 'Regen' : 'rain'}
           {Math.round(day.precipitationProbabilityMax)}%"
-          onclick={() => (pinned = pinned === i ? null : i)}
+          onclick={() => (picked = i)}
         >
           <span class="day"
             >{formatDayShort(day.date, data.timezone, settings.locale)}</span
@@ -145,7 +143,7 @@
     cursor: pointer;
     transition: background 160ms ease;
   }
-  .tile.pinned {
+  .tile.picked {
     background: rgba(0, 0, 0, 0.05);
   }
   .day {
