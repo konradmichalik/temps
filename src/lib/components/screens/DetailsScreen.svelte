@@ -170,8 +170,10 @@
     padding: 12px 18px 18px;
     overflow-y: auto;
   }
+  /* Break out of the paper-zone's horizontal padding so the sun wave spans the
+     full card width. */
   .sunrow {
-    margin-top: 10px;
+    margin: 12px -18px 0;
   }
   .grid {
     list-style: none;

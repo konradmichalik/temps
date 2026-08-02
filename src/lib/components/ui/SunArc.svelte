@@ -1,10 +1,13 @@
 <script lang="ts">
   /**
-   * Sun-position over the full day/night cycle: a wave around a horizon line.
-   * Daytime is the hump above the horizon (sunrise → sunset), night the dip
-   * below; the marker rides the curve at the current local time — a rayed sun
-   * by day, a crescent by night — so you can read exactly where in the cycle
-   * you are. Flanked by sunrise/sunset icons + times.
+   * Sun position over the full day/night cycle, spanning the whole width: a
+   * wave around a horizon line. Daytime is the hump above the horizon (sunrise
+   * → sunset), night the dip below; the marker rides the curve at the current
+   * local time — a rayed sun by day, a crescent by night — so you can read
+   * exactly where in the cycle you are.
+   *
+   * The wave stretches edge-to-edge via preserveAspectRatio="none"; the round
+   * marker is a separate, undistorted overlay positioned on the same mapping.
    */
   import { formatTime } from '../../utils/time';
   import { settings } from '../../stores/settings.svelte';
@@ -20,7 +23,9 @@
 
   let { sunrise, sunset, timezone, accent, accentDeep }: Props = $props();
 
-  const W = 120;
+  const W = 120; // viewBox width (stretched to full container width)
+  const VB_H = 44; // viewBox height
+  const SVG_H = 54; // rendered height in px (marker maps through this)
   const MID = 22; // horizon line
   const DAY_AMP = 14; // hump height above horizon
   const NIGHT_AMP = 9; // dip depth below horizon
@@ -58,7 +63,7 @@
   }
 
   const path = $derived.by(() => {
-    const N = 64;
+    const N = 96;
     let d = '';
     for (let i = 0; i <= N; i++) {
       const h = i / N;
@@ -67,7 +72,10 @@
     return d;
   });
 
-  const marker = $derived({ x: nowF * W, y: curveY(nowF) });
+  // Marker position in the overlay: x as a percentage, y mapped through the
+  // rendered height so it lands on the (vertically un-stretched) curve.
+  const markerLeft = $derived(nowF * 100);
+  const markerTop = $derived((curveY(nowF) / VB_H) * SVG_H);
 
   // Eight short rays around the sun body (static geometry, colored at runtime).
   const RAYS = Array.from({ length: 8 }, (_, i) => {
@@ -82,45 +90,63 @@
 </script>
 
 <div class="sunarc">
-  <svg viewBox="0 0 120 44" aria-hidden="true">
-    <line
-      x1="0"
-      y1={MID}
-      x2={W}
-      y2={MID}
-      stroke={accent}
-      stroke-width="1"
-      opacity="0.3"
-    />
-    <path
-      d={path}
-      fill="none"
-      stroke={accentDeep}
-      stroke-width="1.6"
-      stroke-dasharray="3 4"
-      stroke-linecap="round"
-      opacity="0.6"
-    />
-    <g class="sun" style:transform="translate({marker.x}px, {marker.y}px)">
-      <circle r="3.6" fill={accentDeep} />
-      {#if isDay}
-        {#each RAYS as r (r.x1 + ',' + r.y1)}
-          <line
-            x1={r.x1}
-            y1={r.y1}
-            x2={r.x2}
-            y2={r.y2}
-            stroke={accentDeep}
-            stroke-width="1.4"
-            stroke-linecap="round"
-          />
-        {/each}
-      {:else}
-        <!-- Bite out of the disc → crescent moon (paper-white cutout). -->
-        <circle cx="1.6" cy="-1.1" r="3" fill="#ffffff" />
-      {/if}
-    </g>
-  </svg>
+  <div class="wave">
+    <svg
+      class="wave-svg"
+      viewBox="0 0 {W} {VB_H}"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <line
+        x1="0"
+        y1={MID}
+        x2={W}
+        y2={MID}
+        stroke={accent}
+        stroke-width="1"
+        opacity="0.3"
+        vector-effect="non-scaling-stroke"
+      />
+      <path
+        d={path}
+        fill="none"
+        stroke={accentDeep}
+        stroke-width="1.6"
+        stroke-dasharray="4 5"
+        stroke-linecap="round"
+        opacity="0.6"
+        vector-effect="non-scaling-stroke"
+      />
+    </svg>
+
+    <span
+      class="marker"
+      style:left="{markerLeft}%"
+      style:top="{markerTop}px"
+      aria-hidden="true"
+    >
+      <svg viewBox="-8 -8 16 16" width="16" height="16">
+        <circle r="3.6" fill={accentDeep} />
+        {#if isDay}
+          {#each RAYS as r (r.x1 + ',' + r.y1)}
+            <line
+              x1={r.x1}
+              y1={r.y1}
+              x2={r.x2}
+              y2={r.y2}
+              stroke={accentDeep}
+              stroke-width="1.4"
+              stroke-linecap="round"
+            />
+          {/each}
+        {:else}
+          <!-- Bite out of the disc → crescent moon (paper-white cutout). -->
+          <circle cx="1.6" cy="-1.1" r="3" fill="#ffffff" />
+        {/if}
+      </svg>
+    </span>
+  </div>
+
   <div class="times">
     <span class="t">
       <WeatherIcon
@@ -148,18 +174,29 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 2px 6px;
   }
-  svg {
+  .wave {
+    position: relative;
+  }
+  .wave-svg {
+    display: block;
     width: 100%;
-    height: 50px;
+    height: 54px;
   }
-  .sun {
-    transition: transform 600ms ease;
+  .marker {
+    position: absolute;
+    display: block;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px; /* center on the computed point */
+    transition:
+      left 600ms ease,
+      top 600ms ease;
   }
   .times {
     display: flex;
     justify-content: space-between;
+    padding: 0 18px;
     font-size: clamp(10px, 3cqw, 12px);
     color: var(--paper-ink);
   }
@@ -170,7 +207,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sun {
+    .marker {
       transition: none;
     }
   }
