@@ -141,21 +141,6 @@
 </div>
 
 <style>
-  .st {
-    opacity: 0;
-    transform: translateY(10px);
-    transition:
-      opacity 260ms ease,
-      transform 260ms ease;
-    transition-delay: 0ms;
-  }
-  .in .st {
-    opacity: 1;
-    transform: translateY(0);
-    transition-duration: 420ms;
-    transition-delay: var(--d);
-  }
-
   /* Details uses a slim color band (plan §7), not the shared 58% zone: the
      opaque paper-zone below covers the shared waves, giving the tile grid the
      whole card. The band gets its own waves at the color→white edge. */

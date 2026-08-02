@@ -43,6 +43,23 @@ button {
   color: inherit;
 }
 
+/* Staggered entrance, shared by the screens: an element with `.st` starts
+   faded/lowered and settles on its own beat (`--d`) once an ancestor gains
+   `.in`; leaving screens fade out fast (no delay). */
+.st {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
+}
+.in .st {
+  opacity: 1;
+  transform: translateY(0);
+  transition-duration: 420ms;
+  transition-delay: var(--d);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
