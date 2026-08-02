@@ -42,8 +42,8 @@
 
   /** Rendered pixel width, used to clamp the tooltip inside the card. */
   let chartWidth = $state(0);
-  /** Half the tooltip's footprint — keeps it fully visible at both ends. */
-  const TOOLTIP_HALF = 34;
+  /** Half the tooltip pill's footprint — keeps it fully visible at both ends. */
+  const TOOLTIP_HALF = 50;
 
   const coords = $derived.by(() => {
     if (points.length < 2) return [];
@@ -152,14 +152,10 @@
   </svg>
 
   {#if hovered}
-    <div
-      class="tooltip"
-      style:left="{tooltipLeft}px"
-      style:transform="translateX(-50%)"
-    >
+    <div class="tooltip" style:left="{tooltipLeft}px">
       <WeatherIcon
         name={wmoToIcon(hovered.point.weatherCode, true)}
-        size={18}
+        size={16}
         secondary={color}
         primary={colorDeep}
       />
@@ -190,19 +186,26 @@
   .marker {
     transition: transform 120ms ease-out;
   }
+  /* Single-line pill on its own white background so it never wraps near the
+     edge and never clashes with the line it floats above. */
   .tooltip {
     position: absolute;
-    top: -8px;
+    top: -4px;
+    transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 1px;
-    transition: transform 120ms ease-out;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 3px 9px;
+    border-radius: 99px;
+    background: var(--paper);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    transition: left 120ms ease-out;
     pointer-events: none;
   }
   .temp {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 13px;
+    font-weight: 600;
   }
   .when {
     font-size: 10px;
