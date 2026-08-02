@@ -16,6 +16,8 @@
   import { settings } from './lib/stores/settings.svelte';
   import { favorites } from './lib/stores/favorites.svelte';
   import { rainAlert } from './lib/stores/rain-alert.svelte';
+  import { update } from './lib/stores/update.svelte';
+  import { APP_VERSION } from './lib/version';
   import { tempToColor } from './lib/utils/temp-color';
   import { wmoToIcon } from './lib/utils/wmo-icons';
   import { renderTrayIconPng } from './lib/utils/tray-icon';
@@ -47,6 +49,9 @@
 
       ready = true;
       await weather.load();
+
+      // Non-blocking: surface a hint in Settings if a newer release exists.
+      void update.check(APP_VERSION);
 
       unlisten.push(
         await listen('refresh', () => weather.load(weather.place, true)),

@@ -18,6 +18,8 @@
   import { weather } from '../../stores/weather.svelte';
   import { settings } from '../../stores/settings.svelte';
   import { favorites } from '../../stores/favorites.svelte';
+  import { update } from '../../stores/update.svelte';
+  import { APP_VERSION } from '../../version';
   import { isTauri } from '../../utils/tauri';
 
   /** Native-shell settings (tray, autostart, notifications) only exist in the app. */
@@ -400,26 +402,41 @@
       </label>
     {/if}
 
-    <footer>
-      <span class="about">
-        temps v2.0.0-beta ·
-        <a href="https://open-meteo.com" target="_blank" rel="noreferrer"
-          >weather data by Open-Meteo.com</a
-        >
-        ·
+    <div class="bottom">
+      {#if update.info}
         <a
-          href="https://github.com/konradmichalik/weather-iconic"
+          class="update"
+          style:color={accentDeep}
+          href={update.info.url}
           target="_blank"
-          rel="noreferrer">weather-iconic</a
+          rel="noreferrer"
         >
-      </span>
-      <WeatherIcon
-        name="rainbow"
-        size={16}
-        secondary={accent}
-        primary={accentDeep}
-      />
-    </footer>
+          ↑ {de ? 'Update verfügbar' : 'Update available'}: v{update.info
+            .version}
+        </a>
+      {/if}
+
+      <footer>
+        <span class="about">
+          temps v{APP_VERSION} ·
+          <a href="https://open-meteo.com" target="_blank" rel="noreferrer"
+            >weather data by Open-Meteo.com</a
+          >
+          ·
+          <a
+            href="https://github.com/konradmichalik/weather-iconic"
+            target="_blank"
+            rel="noreferrer">weather-iconic</a
+          >
+        </span>
+        <WeatherIcon
+          name="rainbow"
+          size={16}
+          secondary={accent}
+          primary={accentDeep}
+        />
+      </footer>
+    </div>
   </div>
 </div>
 
@@ -588,8 +605,21 @@
     accent-color: #80bbb2;
   }
 
-  footer {
+  .bottom {
     margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .update {
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 99px;
+    background: rgba(0, 0, 0, 0.05);
+  }
+  footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
