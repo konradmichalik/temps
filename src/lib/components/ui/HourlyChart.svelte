@@ -35,8 +35,15 @@
 
   const W = 300;
   const H = 110;
-  const PAD_X = 10;
+  // Full-bleed horizontally: the line runs edge to edge. Vertical padding keeps
+  // crests/troughs (and the marker) off the clipping edges.
+  const PAD_X = 0;
   const PAD_Y = 22;
+
+  /** Rendered pixel width, used to clamp the tooltip inside the card. */
+  let chartWidth = $state(0);
+  /** Half the tooltip's footprint — keeps it fully visible at both ends. */
+  const TOOLTIP_HALF = 34;
 
   const coords = $derived.by(() => {
     if (points.length < 2) return [];
@@ -88,6 +95,13 @@
   let activeIndex = $state<number | null>(null);
   const hovered = $derived(activeIndex !== null ? coords[activeIndex] : null);
 
+  /** Tooltip center in px, clamped so it never spills past the card edges. */
+  const tooltipLeft = $derived.by(() => {
+    if (!hovered || !chartWidth) return 0;
+    const px = (hovered.x / W) * chartWidth;
+    return Math.min(Math.max(px, TOOLTIP_HALF), chartWidth - TOOLTIP_HALF);
+  });
+
   function onPointerMove(e: PointerEvent) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * W;
@@ -108,6 +122,7 @@
   class="chart"
   role="img"
   aria-label="Hourly temperature chart"
+  bind:clientWidth={chartWidth}
   onpointermove={onPointerMove}
   onpointerleave={() => (activeIndex = null)}
 >
@@ -139,9 +154,8 @@
   {#if hovered}
     <div
       class="tooltip"
-      style:transform="translate(calc({(hovered.x / W) * 100}% * {W / 100} - 50%),
-      0)"
-      style:left="0"
+      style:left="{tooltipLeft}px"
+      style:transform="translateX(-50%)"
     >
       <WeatherIcon
         name={wmoToIcon(hovered.point.weatherCode, true)}
