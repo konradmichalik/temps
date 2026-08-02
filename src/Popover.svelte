@@ -17,6 +17,8 @@
   import { favorites } from './lib/stores/favorites.svelte';
   import { rainAlert } from './lib/stores/rain-alert.svelte';
   import { tempToColor } from './lib/utils/temp-color';
+  import { wmoToIcon } from './lib/utils/wmo-icons';
+  import { renderTrayIconPng } from './lib/utils/tray-icon';
   import { invoke, listen } from './lib/utils/tauri';
 
   const GLOBAL_SHORTCUT = 'CmdOrCtrl+Shift+W';
@@ -60,17 +62,27 @@
     if (weather.data) void rainAlert.check(weather.data);
   });
 
-  // Tray: temperature-colored dot + optional menubar temperature text.
+  // Tray: current weather icon + temperature text, plus optional color dot.
   $effect(() => {
     if (!ready || !weather.data) return;
-    const temp = weather.data.current.temperature;
-    const rgb = hexToRgb(tempToColor(temp, settings.unit));
-    const tempText = settings.menubarTemp ? `${Math.round(temp)}°` : null;
-    void invoke('update_tray', {
-      rgb,
-      showDot: settings.colorIndicator,
-      tempText,
-    });
+    const cur = weather.data.current;
+    const rgb = hexToRgb(tempToColor(cur.temperature, settings.unit));
+    // Read all reactive settings synchronously before the async boundary so
+    // the effect tracks them (reads after `await` would not register).
+    const showDot = settings.colorIndicator;
+    const iconName = wmoToIcon(cur.weatherCode, cur.isDay);
+    // The menubar always shows the current temperature next to the weather icon.
+    const tempText = `${Math.round(cur.temperature)}°`;
+    void (async () => {
+      const iconPng = await renderTrayIconPng(iconName);
+      await invoke('update_tray', {
+        rgb,
+        showDot,
+        tempText,
+        iconPng,
+        iconKey: iconName,
+      });
+    })();
   });
 
   // Polling interval (Rust heartbeat → `refresh` events).

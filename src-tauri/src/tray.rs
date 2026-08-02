@@ -237,10 +237,10 @@ pub fn create_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
 /// same tradeoff beacon accepts for its opt-in indicator; the default (no dot)
 /// stays a clean, appearance-adaptive template.
 #[cfg(target_os = "macos")]
-fn create_tray_icon(show_dot: bool, rgb: [u8; 3]) -> (Vec<u8>, u32, u32) {
+fn create_tray_icon(base_bytes: &[u8], show_dot: bool, rgb: [u8; 3]) -> (Vec<u8>, u32, u32) {
     use image::{GenericImageView, RgbaImage};
 
-    let base = image::load_from_memory(TRAY_ICON_BYTES).expect("failed to decode tray icon");
+    let base = image::load_from_memory(base_bytes).expect("failed to decode tray icon");
     let (w, h) = base.dimensions();
     let mut canvas = RgbaImage::from(base.to_rgba8());
 
@@ -281,8 +281,8 @@ fn create_tray_icon(show_dot: bool, rgb: [u8; 3]) -> (Vec<u8>, u32, u32) {
     (canvas.into_raw(), w, h)
 }
 
-/// `(show_dot, rgb, temp_text)` last rendered — skip identical updates.
-type TrayState = (bool, [u8; 3], String);
+/// `(show_dot, rgb, temp_text, icon_key)` last rendered — skip identical updates.
+type TrayState = (bool, [u8; 3], String, Option<String>);
 
 fn last_tray_state() -> &'static Mutex<Option<TrayState>> {
     static STATE: std::sync::OnceLock<Mutex<Option<TrayState>>> = std::sync::OnceLock::new();
@@ -296,20 +296,25 @@ pub fn update_tray_icon(
     rgb: [u8; 3],
     show_dot: bool,
     temp_text: Option<String>,
+    icon_png: Option<Vec<u8>>,
+    icon_key: Option<String>,
 ) -> Result<(), String> {
     let Some(tray) = app.tray_by_id(TRAY_ID) else {
         return Ok(());
     };
 
     let title = temp_text.unwrap_or_default();
-    let key = (show_dot, rgb, title.clone());
+    let key = (show_dot, rgb, title.clone(), icon_key);
     if last_tray_state().lock().unwrap().as_ref() == Some(&key) {
         return Ok(());
     }
 
     #[cfg(target_os = "macos")]
     {
-        let (rgba, w, h) = create_tray_icon(show_dot, rgb);
+        // The frontend renders the current weather glyph; fall back to the
+        // bundled silhouette if it couldn't (unknown code, decode failure).
+        let base = icon_png.as_deref().unwrap_or(TRAY_ICON_BYTES);
+        let (rgba, w, h) = create_tray_icon(base, show_dot, rgb);
         let icon = Image::new_owned(rgba, w, h);
         // Order matters: Tauri's set_icon hardcodes template=false, so set the
         // template flag last to leave the icon in the intended mode.
@@ -321,7 +326,7 @@ pub fn update_tray_icon(
 
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (rgb, show_dot);
+        let _ = (rgb, show_dot, icon_png);
         tray.set_title(Some(&title)).map_err(|e| e.to_string())?;
     }
 

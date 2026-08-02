@@ -63,8 +63,10 @@ fn update_tray(
     rgb: [u8; 3],
     show_dot: bool,
     temp_text: Option<String>,
+    icon_png: Option<Vec<u8>>,
+    icon_key: Option<String>,
 ) -> Result<(), String> {
-    tray::update_tray_icon(&app, rgb, show_dot, temp_text)
+    tray::update_tray_icon(&app, rgb, show_dot, temp_text, icon_png, icon_key)
 }
 
 /// Register (or replace) the global toggle shortcut.
