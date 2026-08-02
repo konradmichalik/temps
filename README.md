@@ -1,77 +1,101 @@
 <h1 align="center">temps</h1>
 
-<h4 align="center">A simple but smart menubar weather app — rebuilt.</h4>
+<h4 align="center">A simple but smart macOS menubar weather app — rebuilt.</h4>
 
 > [!NOTE]
-> This is the v2 rebuild of [temps (2016)](https://github.com/konradmichalik/temps-legacy):
-> Tauri 2 + Svelte 5 instead of Electron, [Open-Meteo](https://open-meteo.com) instead of
-> API keys, [weather-iconic](https://github.com/konradmichalik/weather-iconic) multi-color icons.
+> **temps v2** is a ground-up rebuild of [temps (2016)](https://github.com/konradmichalik/temps-legacy):
+> Tauri 2 + Svelte 5 instead of Electron, [Open-Meteo](https://open-meteo.com)
+> instead of API keys, and multi-color [weather-iconic](https://github.com/konradmichalik/weather-iconic)
+> icons. macOS only for now.
 
-## Status
+## ✨ Features
 
-Phase 1 (Tauri shell) landed on top of the Phase 2–4 frontend scaffold. The
-popover now runs as a native macOS menubar app — see `docs/implementation-plan.md`
-and `CLAUDE.md`. Repo migration (Phase 0) is manual and tracked in the plan.
+- **Three screens** via CSS scroll-snap — swipe, or `⌘D` / arrow keys:
+  - **Overview** — current temperature, condition, and a 4-day forecast. Tap a
+    day for a slide-up sheet with high/low and rain chance.
+  - **Hourly** — a hand-rolled, full-bleed SVG temperature line (no chart
+    library) with a gliding tooltip.
+  - **Details** — wind, feels-like, humidity, pressure, UV, moon phase, air
+    quality + pollen, and a full-width **day/night sun-position wave** centered
+    on the current time.
+- **Temperature-driven color** — the full-bleed background follows the original
+  9-color palette (design DNA), with a soft wave silhouette at the color→white edge.
+- **Ambient effects** — rain / snow / thunder on a fixed layer, plus a
+  precipitation nowcast strip (“rain in ~20 min”).
+- **Menubar at a glance** — the tray shows the live weather glyph (an adaptive
+  template image) and the current temperature.
+- **Tabbed settings** — keyboard-navigable city autocomplete, favorites (max 5),
+  units (°C/°F), language (EN/DE), time format, effects, polling interval, rain
+  alerts, autostart, and a GitHub-release update check.
+- **No API keys, no tracking, no chart / carousel / date libraries.** Locale and
+  unit autodetect from the browser; choices persist.
+
+> [!TIP]
+> No network? The app falls back to bundled demo data. You can also force a
+> scenario with `?demo=sunny|rain|snow|thunder|night`.
+
+## 🖥️ The menubar app
 
 Native shell (`src-tauri/`, macOS):
-- NSPanel popover (frameless, 340×480) floating at the tray, click-outside to close
-- Tray icon (template image) with optional temperature text + opt-in color dot
-- Left-click toggles the popover; right-click menu: Refresh · Settings · Quit
-- Global toggle shortcut (⌘⇧W), autostart, plugin-store persistence
-- Rust refresh heartbeat → `refresh` events; rain-alert notification (opt-in, tested)
 
-Implemented and tested:
-- `utils/temp-color.ts` — the original 9-color temperature palette (design DNA)
-- `utils/wmo-icons.ts` — WMO code → weather-iconic mapping (day/night, labels EN/DE, effects)
-- `services/moon-phase.ts` — synodic moon phase → 8 icons, validated against real full/new moons
-- `services/open-meteo.ts` — one request feeds all three screens, `timezone=auto`
-- `utils/fetch.ts` — Tauri plugin-http vs. browser fetch (enables the landing live demo)
-- Three-screen scroll-snap carousel (Overview · Hourly · Details), Cmd+D / arrow cycling
-- Hand-rolled SVG hourly chart (Catmull-Rom, dashoffset reveal, gliding tooltip)
-- Fixed effects layer: rain / snow / thunder + drifting wave silhouette
-- Demo scenarios (`?demo=sunny|rain|snow|thunder|night`) — also the offline fallback
-- Precipitation nowcast strip (minutely_15, "rain in ~20 min") with tested logic
-- Settings overlay with integrated city search (Open-Meteo geocoding, debounced),
-  favorites (max 5, persisted), unit / language / time format / effects toggles
-- Locale + unit autodetect from `navigator.language`; choices persist to localStorage
-- Deep links in the standalone app (`?lat=&lon=&name=`), URL stays in sync
-- v1.1: air quality (European AQI) + pollen tiles (Europe only), sun position arc
+- **NSPanel popover** — frameless 340×480, floats at the tray, click-outside to close.
+- **Tray** — current weather glyph + temperature; left-click toggles the popover,
+  right-click menu: Refresh · Settings · Quit.
+- **Global shortcut** `⌘⇧W` to toggle · `⌘G` for your current location.
+- **Autostart**, plugin-store persistence, and a Rust refresh heartbeat.
+- **Rain alert** — opt-in native notification when rain is starting soon.
+- **Update check** against the GitHub Releases API (no third-party services).
 
-## Development
+## 🚀 Getting started
 
 ```bash
 npm install
-npm run dev        # web preview with demo harness
-npm run tauri:dev  # full macOS app (tray + popover) — needs the Rust toolchain
-npm run test       # vitest (28 tests)
-npm run check      # svelte-check
-npm run build      # production web build
+npm run dev         # web preview with the demo harness
+npm run tauri:dev   # full macOS app (tray + popover) — needs the Rust toolchain
+npm run test        # vitest (35 tests)
+npm run check       # svelte-check
+npm run lint        # eslint + prettier --check
+npm run build       # production web build
 npm run build:pages # landing page → dist-pages/ (GitHub Pages)
 npm run tauri:build # .app + .dmg → src-tauri/target/release/bundle/
 ```
 
-The dev preview hits the real Open-Meteo API; without network it falls back
-to demo data automatically.
+> [!IMPORTANT]
+> The dev preview hits the live Open-Meteo API. Attribution (**CC BY 4.0**) is
+> mandatory and is surfaced in-app and on the landing page — keep it intact.
 
-## Deployment targets
+## 🎯 One codebase, four shells
 
-One codebase, four shells (all through `utils/fetch.ts`):
+Everything shares one component tree and routes network through `utils/fetch.ts`
+(Tauri `plugin-http` in the app, browser `fetch` on the web):
 
 | Target | Entry | Notes |
 |---|---|---|
-| Tauri popover | `Popover.svelte` (via `main.ts` when `isTauri()`) | fixed 340x480 at the tray |
+| Tauri popover | `Popover.svelte` (`main.ts` when `isTauri()`) | fixed 340×480 at the tray |
 | Dev harness | `index.html` | card + scenario switcher (browser) |
-| Standalone web app | `app.html` | responsive, installable (manifest, `display: standalone`), edge-to-edge on mobile with safe-area insets, theme-color follows the temperature color, geolocation button |
-| Landing page | `src/landing/` → `dist-pages/` | live hero demo + install/shortcuts/credits; `npm run build:pages` |
+| Standalone web app | `app.html` | responsive & installable (PWA manifest), edge-to-edge on mobile, theme-color follows the temperature, geolocation button |
+| Landing page | `src/landing/` → `dist-pages/` | live hero demo + install/shortcuts/credits |
 
-Type scales with the card via container queries (`cqw`), so popover,
-phone and desktop card share identical proportions.
+Type scales with the card via container queries (`cqw`), so popover, phone, and
+desktop card share identical proportions.
 
-## Credits
+## 🧭 Design notes
+
+- **One request feeds all three screens** (`services/open-meteo.ts`, `timezone=auto`);
+  display always uses the location's timezone, never the system's.
+- **No chart library** — the hourly line is Catmull-Rom smoothing with a
+  dashoffset reveal and a pointer-driven tooltip.
+- **Effects and waves live on a fixed layer** between the background color and
+  the scroll-snap container; only `transform` / `opacity` animate, and
+  `prefers-reduced-motion` is respected.
+- **Tested pure modules** — `tempToColor`, `wmoToIcon`, `moonPhase`, the rain-alert
+  debounce, nowcast analysis, and update-version comparison.
+
+## 🙌 Credits
 
 Weather data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
 Icons: [weather-iconic](https://github.com/konradmichalik/weather-iconic).
 
-## License
+## 📄 License
 
 MIT
