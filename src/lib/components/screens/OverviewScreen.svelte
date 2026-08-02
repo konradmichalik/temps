@@ -17,14 +17,24 @@
 
   const c = $derived(data.current);
   const forecast = $derived(data.daily.slice(1, 5));
-
-  // The detail panel is always shown (no layout jump); tapping a day just
-  // switches which one it describes. Defaults to the first upcoming day.
-  let picked = $state(0);
-  const selected = $derived(forecast[picked] ?? forecast[0] ?? null);
-
   const de = $derived(settings.locale === 'de');
+
+  // Forecast stays minimal (day · icon · high); tapping a day opens a small
+  // modal with the full detail, so the base layout never shifts.
+  let openDay = $state<number | null>(null);
+  const detail = $derived(openDay !== null ? forecast[openDay] : null);
+  let closeBtn = $state<HTMLButtonElement>();
+
+  $effect(() => {
+    if (detail) closeBtn?.focus();
+  });
 </script>
+
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === 'Escape' && openDay !== null) openDay = null;
+  }}
+/>
 
 <CurrentReading current={c} nowcast={data.minutely15} {active} />
 
@@ -46,18 +56,13 @@
         <button
           type="button"
           class="tile"
-          class:picked={picked === i}
-          aria-pressed={picked === i}
+          aria-haspopup="dialog"
           aria-label="{formatDayShort(
             day.date,
             data.timezone,
             settings.locale,
-          )}:
-          {de ? 'max' : 'high'} {Math.round(day.tempMax)}°, {de
-            ? 'min'
-            : 'low'} {Math.round(day.tempMin)}°, {de ? 'Regen' : 'rain'}
-          {Math.round(day.precipitationProbabilityMax)}%"
-          onclick={() => (picked = i)}
+          )}, {Math.round(day.tempMax)}°"
+          onclick={() => (openDay = i)}
         >
           <span class="day"
             >{formatDayShort(day.date, data.timezone, settings.locale)}</span
@@ -75,47 +80,80 @@
       </li>
     {/each}
   </ul>
+</div>
 
-  {#if selected}
-    <div class="detail">
-      <span class="d-cond">
+{#if detail}
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Day forecast">
+    <button
+      class="backdrop"
+      aria-label={de ? 'Schließen' : 'Close'}
+      onclick={() => (openDay = null)}
+    ></button>
+    <div class="sheet">
+      <button
+        class="x"
+        bind:this={closeBtn}
+        aria-label={de ? 'Schließen' : 'Close'}
+        onclick={() => (openDay = null)}
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="16"
+          height="16"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+        </svg>
+      </button>
+
+      <div class="head">
         <WeatherIcon
-          name={wmoToIcon(selected.weatherCode, true)}
-          size={22}
+          name={wmoToIcon(detail.weatherCode, true)}
+          size={40}
           secondary={accent}
           primary={accentDeep}
         />
-        {wmoToLabel(selected.weatherCode, settings.locale)}
-      </span>
-      <span class="d-stats">
-        <span class="d-temps">
-          <span style:color={accent}>{Math.round(selected.tempMax)}°</span> /
-          {Math.round(selected.tempMin)}°
-        </span>
-        <span class="d-rain">
-          <WeatherIcon
-            name="umbrella"
-            size={14}
-            secondary={accent}
-            primary={accentDeep}
-          />
-          {Math.round(selected.precipitationProbabilityMax)}%
-        </span>
-      </span>
+        <div>
+          <div class="date">
+            {formatDateLine(detail.date, data.timezone, settings.locale)}
+          </div>
+          <div class="cond">
+            {wmoToLabel(detail.weatherCode, settings.locale)}
+          </div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="v" style:color={accentDeep}
+            >{Math.round(detail.tempMax)}°</span
+          >
+          <span class="k">{de ? 'Höchst' : 'high'}</span>
+        </div>
+        <div class="stat">
+          <span class="v">{Math.round(detail.tempMin)}°</span>
+          <span class="k">{de ? 'Tiefst' : 'low'}</span>
+        </div>
+        <div class="stat">
+          <span class="v"
+            >{Math.round(detail.precipitationProbabilityMax)}%</span
+          >
+          <span class="k">{de ? 'Regen' : 'rain'}</span>
+        </div>
+      </div>
     </div>
-  {/if}
-</div>
+  </div>
+{/if}
 
 <style>
-  /* Center the date + forecast block vertically so it isn't top-loaded with a
-     wide band of empty white beneath it. */
   .paper-zone {
     flex: 1;
     padding: 6px 22px 22px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 14px;
+    gap: 18px;
   }
   .meta {
     display: flex;
@@ -143,8 +181,9 @@
     cursor: pointer;
     transition: background 160ms ease;
   }
-  .tile.picked {
-    background: rgba(0, 0, 0, 0.05);
+  .tile:hover,
+  .tile:focus-visible {
+    background: rgba(0, 0, 0, 0.04);
   }
   .day {
     font-size: 10px;
@@ -155,39 +194,96 @@
     font-size: clamp(12px, 3.8cqw, 16px);
   }
 
-  /* Detail for the tapped day: condition + high/low + rain chance. */
-  .detail {
+  /* Detail modal: overlays the slide (doesn't shift the base layout). */
+  .modal {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    background: rgba(0, 0, 0, 0.04);
-    font-size: 12px;
-    color: var(--paper-ink-strong);
+    justify-content: center;
+    animation: fade 160ms ease;
   }
-  .d-cond {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  .backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.28);
+    border: none;
+    cursor: pointer;
   }
-  .d-stats {
-    margin-left: auto;
+  .sheet {
+    position: relative;
+    z-index: 1;
+    width: 78%;
+    max-width: 270px;
+    background: var(--paper);
+    border-radius: 16px;
+    padding: 18px 18px 20px;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.28);
+    animation: pop 180ms ease;
+  }
+  .x {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px;
+    color: var(--paper-ink);
+  }
+  .x svg {
+    fill: none;
+  }
+  .head {
     display: flex;
     align-items: center;
     gap: 12px;
-    white-space: nowrap;
   }
-  .d-temps {
+  .date {
+    font-size: 14px;
     font-weight: 500;
+    color: var(--paper-ink-strong);
   }
-  .d-rain {
+  .cond {
+    font-size: 12px;
+    color: var(--paper-ink);
+  }
+  .stats {
     display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
+  }
+  .stat .v {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--paper-ink-strong);
+  }
+  .stat .k {
+    font-size: 10px;
+    color: var(--paper-ink);
+    text-transform: lowercase;
   }
 
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
+    .modal,
+    .sheet {
+      animation: none;
+    }
     .tile {
       transition: none;
     }

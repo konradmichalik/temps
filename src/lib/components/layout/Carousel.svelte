@@ -95,6 +95,7 @@
     display: none;
   }
   section {
+    position: relative;
     flex: 0 0 100%;
     scroll-snap-align: start;
     scroll-snap-stop: always;
