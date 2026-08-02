@@ -105,6 +105,34 @@
     onclose();
   }
 
+  const canLocate =
+    typeof navigator !== 'undefined' && 'geolocation' in navigator;
+  let locating = $state(false);
+  let locateError = $state(false);
+
+  function useLocation() {
+    if (!canLocate || locating) return;
+    locating = true;
+    locateError = false;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        pick({
+          name: de ? 'Mein Standort' : 'My location',
+          country: '',
+          latitude: Math.round(pos.coords.latitude * 100) / 100,
+          longitude: Math.round(pos.coords.longitude * 100) / 100,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        });
+        locating = false;
+      },
+      () => {
+        locating = false;
+        locateError = true;
+      },
+      { timeout: 8000 },
+    );
+  }
+
   function change() {
     settings.persist();
   }
@@ -213,6 +241,39 @@
             </li>
           {/each}
         </ul>
+      {/if}
+
+      {#if canLocate}
+        <button
+          class="locate"
+          style:color={accentDeep}
+          disabled={locating}
+          onclick={useLocation}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke-linecap="round" />
+          </svg>
+          {locating
+            ? de
+              ? 'Ermittle Standort…'
+              : 'Locating…'
+            : de
+              ? 'Meinen Standort verwenden'
+              : 'Use my location'}
+        </button>
+        {#if locateError}
+          <span class="locate-error"
+            >{de ? 'Standort nicht verfügbar' : 'Location unavailable'}</span
+          >
+        {/if}
       {/if}
 
       {#if favorites.list.length > 0}
@@ -567,6 +628,21 @@
   .fav-toggle:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+  .locate {
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .locate:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .locate-error {
+    font-size: 11px;
+    color: #b45454;
   }
 
   .row {
