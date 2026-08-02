@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { WeatherData } from '../../services/open-meteo';
-  import { wmoToIcon } from '../../utils/wmo-icons';
+  import { wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
   import { formatDateLine, formatDayShort } from '../../utils/time';
   import { settings } from '../../stores/settings.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
@@ -18,9 +18,14 @@
   const c = $derived(data.current);
   const forecast = $derived(data.daily.slice(1, 5));
 
-  // Which forecast tile is pinned open (tap/click). Hover + keyboard focus
-  // reveal the low temp via CSS; this handles touch and a sticky click.
+  // Tap/click a day to pin its detail panel (high/low + rain chance); tap again
+  // to close. Kept in range so a data refresh can't point at a missing day.
   let pinned = $state<number | null>(null);
+  const selected = $derived(
+    pinned !== null && pinned < forecast.length ? forecast[pinned] : null,
+  );
+
+  const de = $derived(settings.locale === 'de');
 </script>
 
 <CurrentReading current={c} nowcast={data.minutely15} {active} />
@@ -34,8 +39,9 @@
         settings.locale,
       )}</span
     >
-    <span>{data.place.name.toLowerCase()}, {data.place.country}</span>
+    <span>{data.place.name.toLowerCase()}</span>
   </div>
+
   <ul class="forecast">
     {#each forecast as day, i (day.date.getTime())}
       <li class="st" style:--d="{300 + i * 70}ms">
@@ -49,7 +55,10 @@
             data.timezone,
             settings.locale,
           )}:
-          {Math.round(day.tempMax)}° / {Math.round(day.tempMin)}°"
+          {de ? 'max' : 'high'} {Math.round(day.tempMax)}°, {de
+            ? 'min'
+            : 'low'} {Math.round(day.tempMin)}°, {de ? 'Regen' : 'rain'}
+          {Math.round(day.precipitationProbabilityMax)}%"
           onclick={() => (pinned = pinned === i ? null : i)}
         >
           <span class="day"
@@ -64,11 +73,39 @@
           <span class="max" style:color={accent}
             >{Math.round(day.tempMax)}°</span
           >
-          <span class="min">{Math.round(day.tempMin)}°</span>
         </button>
       </li>
     {/each}
   </ul>
+
+  {#if selected}
+    <div class="detail">
+      <span class="d-cond">
+        <WeatherIcon
+          name={wmoToIcon(selected.weatherCode, true)}
+          size={22}
+          secondary={accent}
+          primary={accentDeep}
+        />
+        {wmoToLabel(selected.weatherCode, settings.locale)}
+      </span>
+      <span class="d-stats">
+        <span class="d-temps">
+          <span style:color={accent}>{Math.round(selected.tempMax)}°</span> /
+          {Math.round(selected.tempMin)}°
+        </span>
+        <span class="d-rain">
+          <WeatherIcon
+            name="umbrella"
+            size={14}
+            secondary={accent}
+            primary={accentDeep}
+          />
+          {Math.round(selected.precipitationProbabilityMax)}%
+        </span>
+      </span>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -80,7 +117,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 18px;
+    gap: 14px;
   }
   .meta {
     display: flex;
@@ -103,8 +140,13 @@
     align-items: center;
     gap: 6px;
     width: 100%;
-    padding: 4px 0;
+    padding: 6px 0;
+    border-radius: 8px;
     cursor: pointer;
+    transition: background 160ms ease;
+  }
+  .tile.pinned {
+    background: rgba(0, 0, 0, 0.05);
   }
   .day {
     font-size: 10px;
@@ -114,21 +156,41 @@
   .max {
     font-size: clamp(12px, 3.8cqw, 16px);
   }
-  /* Low temp: revealed on hover, keyboard focus, or a sticky tap (.pinned).
-     Its line is always reserved, so revealing it never shifts the layout. */
-  .min {
-    font-size: clamp(11px, 3.4cqw, 14px);
-    color: var(--paper-ink);
-    opacity: 0;
-    transition: opacity 160ms ease;
+
+  /* Detail for the tapped day: condition + high/low + rain chance. */
+  .detail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.04);
+    font-size: 12px;
+    color: var(--paper-ink-strong);
   }
-  .tile:hover .min,
-  .tile:focus-visible .min,
-  .tile.pinned .min {
-    opacity: 1;
+  .d-cond {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
+  .d-stats {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+  }
+  .d-temps {
+    font-weight: 500;
+  }
+  .d-rain {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   @media (prefers-reduced-motion: reduce) {
-    .min {
+    .tile {
       transition: none;
     }
   }
