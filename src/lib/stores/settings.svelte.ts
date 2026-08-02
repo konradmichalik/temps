@@ -11,8 +11,6 @@ interface Persisted {
   airQualityEnabled: boolean;
   /** Tray: show a temperature-colored indicator dot (macOS, opt-in). */
   colorIndicator: boolean;
-  /** Tray: show the current temperature as text next to the icon. */
-  menubarTemp: boolean;
   /** Fire a native notification when rain is starting soon (opt-in). */
   rainAlertEnabled: boolean;
   /** Silence rain alerts between 23:00 and 07:00 local time. */
@@ -39,7 +37,6 @@ function detectDefaults(): Persisted {
     pollingMinutes: 15,
     airQualityEnabled: true,
     colorIndicator: false,
-    menubarTemp: false,
     rainAlertEnabled: false,
     rainAlertQuietHours: true,
     autostart: false,
@@ -56,7 +53,6 @@ class SettingsStore {
   pollingMinutes = $state(15);
   airQualityEnabled = $state(true);
   colorIndicator = $state(false);
-  menubarTemp = $state(false);
   rainAlertEnabled = $state(false);
   rainAlertQuietHours = $state(true);
   autostart = $state(false);
@@ -78,7 +74,6 @@ class SettingsStore {
     this.pollingMinutes = v.pollingMinutes;
     this.airQualityEnabled = v.airQualityEnabled;
     this.colorIndicator = v.colorIndicator;
-    this.menubarTemp = v.menubarTemp;
     this.rainAlertEnabled = v.rainAlertEnabled;
     this.rainAlertQuietHours = v.rainAlertQuietHours;
     this.autostart = v.autostart;
@@ -95,7 +90,6 @@ class SettingsStore {
       pollingMinutes: this.pollingMinutes,
       airQualityEnabled: this.airQualityEnabled,
       colorIndicator: this.colorIndicator,
-      menubarTemp: this.menubarTemp,
       rainAlertEnabled: this.rainAlertEnabled,
       rainAlertQuietHours: this.rainAlertQuietHours,
       autostart: this.autostart,

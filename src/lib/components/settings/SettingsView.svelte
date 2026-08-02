@@ -4,8 +4,14 @@
    * waves on top, form below. City search lives here (as in 2016), plus
    * favorites, units, language, effects. No API key field anymore — that's
    * the point of the rebuild.
+   *
+   * Settings are grouped into tabs (Location / General / System) so the sheet
+   * stays scannable. The city field is a keyboard-navigable autocomplete
+   * (↑/↓ to move, ↵ to pick, Esc to clear). The whole overlay flies in and
+   * back out via a Svelte transition, honoring prefers-reduced-motion.
    */
   import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
   import Waves from '../effects/Waves.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
   import { searchPlaces, type Place } from '../../services/open-meteo';
@@ -29,19 +35,29 @@
 
   let searchInput = $state<HTMLInputElement>();
 
+  const reduced =
+    typeof window !== 'undefined' &&
+    (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+  const flyOpts = { y: 14, duration: reduced ? 0 : 260 };
+
   onMount(() => {
     if (autofocus) searchInput?.focus();
   });
 
   const de = $derived(settings.locale === 'de');
 
+  type Tab = 'location' | 'general' | 'system';
+  let tab = $state<Tab>('location');
+
   let query = $state('');
   let results = $state<Place[]>([]);
   let searching = $state(false);
+  let activeResult = $state(0);
   let debounce: ReturnType<typeof setTimeout>;
 
   function onInput() {
     clearTimeout(debounce);
+    activeResult = 0;
     if (query.trim().length < 2) {
       results = [];
       return;
@@ -50,12 +66,33 @@
       searching = true;
       try {
         results = await searchPlaces(query, settings.locale);
+        activeResult = 0;
       } catch {
         results = [];
       } finally {
         searching = false;
       }
     }, 300);
+  }
+
+  function onSearchKeydown(e: KeyboardEvent) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (results.length) activeResult = (activeResult + 1) % results.length;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (results.length)
+        activeResult = (activeResult - 1 + results.length) % results.length;
+    } else if (e.key === 'Enter') {
+      const r = results[activeResult];
+      if (r) {
+        e.preventDefault();
+        pick(r);
+      }
+    } else if (e.key === 'Escape' && results.length) {
+      e.preventDefault();
+      results = [];
+    }
   }
 
   function pick(place: Place) {
@@ -76,7 +113,12 @@
   }
 </script>
 
-<div class="overlay" role="dialog" aria-label="Settings">
+<div
+  class="overlay"
+  role="dialog"
+  aria-label="Settings"
+  transition:fly={flyOpts}
+>
   <div class="band" style:background-color={accent}>
     <Waves animated={settings.waveAnimation} />
     <button class="close" aria-label="Close" onclick={onclose}>
@@ -93,153 +135,205 @@
     <h1>temps</h1>
   </div>
 
-  <div class="form">
-    <label class="field">
-      <span class="caption">{de ? 'Stadt' : 'City'}</span>
-      <input
-        type="text"
-        bind:this={searchInput}
-        bind:value={query}
-        oninput={onInput}
-        placeholder={weather.place.name +
-          (weather.place.country ? `, ${weather.place.country}` : '')}
-        autocomplete="off"
-      />
-    </label>
-
-    {#if results.length > 0 || searching}
-      <ul class="results">
-        {#if searching}
-          <li class="hint">…</li>
-        {/if}
-        {#each results as r (r.latitude + ',' + r.longitude)}
-          <li>
-            <button class="result" onclick={() => pick(r)}>
-              {r.name}<span class="country">{r.country}</span>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
-
-    {#if favorites.list.length > 0}
-      <div class="favorites">
-        {#each favorites.list as f (f.latitude + ',' + f.longitude)}
-          <button class="fav" style:color={accentDeep} onclick={() => pick(f)}>
-            ★ {f.name}
-          </button>
-        {/each}
-      </div>
-    {/if}
+  <div class="tabs" role="tablist" aria-label="Settings sections">
     <button
-      class="fav-toggle"
-      style:color={accentDeep}
-      disabled={!favorites.has(weather.place) && favorites.full}
-      onclick={() => favorites.toggle(weather.place)}
+      role="tab"
+      class="tab"
+      class:active={tab === 'location'}
+      aria-selected={tab === 'location'}
+      onclick={() => (tab = 'location')}
     >
-      {favorites.has(weather.place)
-        ? de
-          ? '★ Favorit entfernen'
-          : '★ Remove favorite'
-        : de
-          ? '☆ Als Favorit speichern'
-          : '☆ Save as favorite'}
+      {de ? 'Ort' : 'Location'}
     </button>
-
-    <div class="row">
-      <span>{de ? 'Temperaturskala' : 'Temperature scale'}</span>
-      <span class="choices">
-        <label
-          ><input
-            type="radio"
-            bind:group={settings.unit}
-            value="celsius"
-            onchange={changeUnit}
-          /> °C</label
-        >
-        <label
-          ><input
-            type="radio"
-            bind:group={settings.unit}
-            value="fahrenheit"
-            onchange={changeUnit}
-          /> °F</label
-        >
-      </span>
-    </div>
-
-    <div class="row">
-      <span>{de ? 'Sprache' : 'Language'}</span>
-      <span class="choices">
-        <label
-          ><input
-            type="radio"
-            bind:group={settings.locale}
-            value="de"
-            onchange={change}
-          /> DE</label
-        >
-        <label
-          ><input
-            type="radio"
-            bind:group={settings.locale}
-            value="en"
-            onchange={change}
-          /> EN</label
-        >
-      </span>
-    </div>
-
-    <div class="row">
-      <span>{de ? 'Zeitformat' : 'Time format'}</span>
-      <span class="choices">
-        <label
-          ><input
-            type="radio"
-            bind:group={settings.hour12}
-            value={false}
-            onchange={change}
-          /> 24h</label
-        >
-        <label
-          ><input
-            type="radio"
-            bind:group={settings.hour12}
-            value={true}
-            onchange={change}
-          /> 12h</label
-        >
-      </span>
-    </div>
-
-    <label class="row">
-      <span>{de ? 'Wetter-Effekte' : 'Weather effects'}</span>
-      <input
-        type="checkbox"
-        bind:checked={settings.effectsEnabled}
-        onchange={change}
-      />
-    </label>
-
-    <label class="row">
-      <span>{de ? 'Wellen-Animation' : 'Wave animation'}</span>
-      <input
-        type="checkbox"
-        bind:checked={settings.waveAnimation}
-        onchange={change}
-      />
-    </label>
-
-    <label class="row">
-      <span>{de ? 'Luftqualität & Pollen' : 'Air quality & pollen'}</span>
-      <input
-        type="checkbox"
-        bind:checked={settings.airQualityEnabled}
-        onchange={change}
-      />
-    </label>
-
+    <button
+      role="tab"
+      class="tab"
+      class:active={tab === 'general'}
+      aria-selected={tab === 'general'}
+      onclick={() => (tab = 'general')}
+    >
+      {de ? 'Allgemein' : 'General'}
+    </button>
     {#if tauri}
+      <button
+        role="tab"
+        class="tab"
+        class:active={tab === 'system'}
+        aria-selected={tab === 'system'}
+        onclick={() => (tab = 'system')}
+      >
+        System
+      </button>
+    {/if}
+  </div>
+
+  <div class="form">
+    {#if tab === 'location'}
+      <label class="field">
+        <span class="caption">{de ? 'Stadt' : 'City'}</span>
+        <input
+          type="text"
+          role="combobox"
+          aria-expanded={results.length > 0}
+          aria-controls="city-results"
+          aria-activedescendant={results.length
+            ? `city-result-${activeResult}`
+            : undefined}
+          aria-autocomplete="list"
+          bind:this={searchInput}
+          bind:value={query}
+          oninput={onInput}
+          onkeydown={onSearchKeydown}
+          placeholder={weather.place.name +
+            (weather.place.country ? `, ${weather.place.country}` : '')}
+          autocomplete="off"
+        />
+      </label>
+
+      {#if results.length > 0 || searching}
+        <ul class="results" id="city-results" role="listbox">
+          {#if searching}
+            <li class="hint">…</li>
+          {/if}
+          {#each results as r, i (r.latitude + ',' + r.longitude)}
+            <li role="presentation">
+              <button
+                id="city-result-{i}"
+                role="option"
+                aria-selected={i === activeResult}
+                class="result"
+                class:active={i === activeResult}
+                onclick={() => pick(r)}
+                onmousemove={() => (activeResult = i)}
+              >
+                {r.name}<span class="country">{r.country}</span>
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if favorites.list.length > 0}
+        <div class="favorites">
+          {#each favorites.list as f (f.latitude + ',' + f.longitude)}
+            <button
+              class="fav"
+              style:color={accentDeep}
+              onclick={() => pick(f)}
+            >
+              ★ {f.name}{f.country ? `, ${f.country}` : ''}
+            </button>
+          {/each}
+        </div>
+      {/if}
+      <button
+        class="fav-toggle"
+        style:color={accentDeep}
+        disabled={!favorites.has(weather.place) && favorites.full}
+        onclick={() => favorites.toggle(weather.place)}
+      >
+        {favorites.has(weather.place)
+          ? de
+            ? '★ Favorit entfernen'
+            : '★ Remove favorite'
+          : de
+            ? '☆ Als Favorit speichern'
+            : '☆ Save as favorite'}
+      </button>
+    {:else if tab === 'general'}
+      <div class="row">
+        <span>{de ? 'Temperaturskala' : 'Temperature scale'}</span>
+        <span class="choices">
+          <label
+            ><input
+              type="radio"
+              bind:group={settings.unit}
+              value="celsius"
+              onchange={changeUnit}
+            /> °C</label
+          >
+          <label
+            ><input
+              type="radio"
+              bind:group={settings.unit}
+              value="fahrenheit"
+              onchange={changeUnit}
+            /> °F</label
+          >
+        </span>
+      </div>
+
+      <div class="row">
+        <span>{de ? 'Sprache' : 'Language'}</span>
+        <span class="choices">
+          <label
+            ><input
+              type="radio"
+              bind:group={settings.locale}
+              value="de"
+              onchange={change}
+            /> DE</label
+          >
+          <label
+            ><input
+              type="radio"
+              bind:group={settings.locale}
+              value="en"
+              onchange={change}
+            /> EN</label
+          >
+        </span>
+      </div>
+
+      <div class="row">
+        <span>{de ? 'Zeitformat' : 'Time format'}</span>
+        <span class="choices">
+          <label
+            ><input
+              type="radio"
+              bind:group={settings.hour12}
+              value={false}
+              onchange={change}
+            /> 24h</label
+          >
+          <label
+            ><input
+              type="radio"
+              bind:group={settings.hour12}
+              value={true}
+              onchange={change}
+            /> 12h</label
+          >
+        </span>
+      </div>
+
+      <label class="row">
+        <span>{de ? 'Wetter-Effekte' : 'Weather effects'}</span>
+        <input
+          type="checkbox"
+          bind:checked={settings.effectsEnabled}
+          onchange={change}
+        />
+      </label>
+
+      <label class="row">
+        <span>{de ? 'Wellen-Animation' : 'Wave animation'}</span>
+        <input
+          type="checkbox"
+          bind:checked={settings.waveAnimation}
+          onchange={change}
+        />
+      </label>
+
+      <label class="row">
+        <span>{de ? 'Luftqualität & Pollen' : 'Air quality & pollen'}</span>
+        <input
+          type="checkbox"
+          bind:checked={settings.airQualityEnabled}
+          onchange={change}
+        />
+      </label>
+    {:else if tab === 'system'}
       <div class="row">
         <span>{de ? 'Aktualisierung' : 'Refresh interval'}</span>
         <span class="choices">
@@ -256,17 +350,6 @@
           {/each}
         </span>
       </div>
-
-      <label class="row">
-        <span
-          >{de ? 'Temperatur in Menüleiste' : 'Temperature in menu bar'}</span
-        >
-        <input
-          type="checkbox"
-          bind:checked={settings.menubarTemp}
-          onchange={change}
-        />
-      </label>
 
       <label class="row">
         <span>{de ? 'Farbindikator' : 'Color indicator'}</span>
@@ -348,17 +431,6 @@
     background: var(--paper);
     display: flex;
     flex-direction: column;
-    animation: rise 260ms ease-out;
-  }
-  @keyframes rise {
-    from {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 
   .band {
@@ -384,6 +456,29 @@
   }
   .close svg {
     fill: none;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 4px;
+    font-size: 12px;
+    color: var(--paper-ink);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition:
+      color 160ms ease,
+      border-color 160ms ease;
+  }
+  .tab.active {
+    color: var(--paper-ink-strong);
+    border-bottom-color: currentColor;
+    font-weight: 500;
   }
 
   .form {
@@ -431,8 +526,9 @@
     font-size: 13px;
     color: var(--paper-ink-strong);
   }
-  .result:hover {
-    background: rgba(0, 0, 0, 0.04);
+  .result:hover,
+  .result.active {
+    background: rgba(0, 0, 0, 0.06);
   }
   .country {
     margin-left: 6px;
