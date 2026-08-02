@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { cubicOut } from 'svelte/easing';
   import type { WeatherData } from '../../services/open-meteo';
   import { wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
   import { formatDateLine, formatDayShort } from '../../utils/time';
@@ -29,25 +28,6 @@
   $effect(() => {
     if (detail) closeBtn?.focus();
   });
-
-  const reducedMotion =
-    typeof window !== 'undefined' &&
-    (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
-
-  // Slide up by the panel's measured height (px, not %, to dodge WebKit's
-  // percentage-basis quirk on top/bottom-anchored absolute elements). Reduced
-  // motion gets a gentle fade instead of a slide.
-  function slideUp(node: HTMLElement) {
-    const dist = node.offsetHeight;
-    return {
-      duration: reducedMotion ? 160 : 300,
-      easing: cubicOut,
-      css: (t: number) =>
-        reducedMotion
-          ? `opacity: ${t}`
-          : `transform: translateY(${(1 - t) * dist}px)`,
-    };
-  }
 </script>
 
 <svelte:window
@@ -114,7 +94,6 @@
       role="dialog"
       aria-modal="true"
       aria-label="Day forecast"
-      transition:slideUp
     >
       <button
         class="x"
@@ -236,13 +215,16 @@
     cursor: pointer;
   }
   /* Fills the white paper area seamlessly — no radius or shadow, so it reads as
-     the paper itself rather than a floating window. */
+     the paper itself rather than a floating window. A definite height (cqh, the
+     card is a size container) makes the slide's translateY(100%) unambiguous in
+     every engine; a plain CSS keyframe applies the start state synchronously, so
+     there's no flash or jump. The color zone is 64%, so the paper area is 36cqh. */
   .sheet {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    top: var(--color-zone);
+    height: 36cqh;
     background: var(--paper);
     padding: 6px 22px 22px;
     display: flex;
@@ -250,6 +232,12 @@
     justify-content: center;
     gap: 16px;
     will-change: transform;
+    animation: sheet-up 300ms ease-out;
+  }
+  @keyframes sheet-up {
+    from {
+      transform: translateY(100%);
+    }
   }
   .x {
     position: absolute;
