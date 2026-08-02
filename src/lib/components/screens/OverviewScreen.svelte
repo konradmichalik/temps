@@ -34,12 +34,18 @@
     typeof window !== 'undefined' &&
     (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
 
-  // Slide by exactly the panel's own height (no measuring, smooth both ways).
-  function slideUp(_node: Element, { duration = 300 }: { duration?: number }) {
+  // Slide up by the panel's measured height (px, not %, to dodge WebKit's
+  // percentage-basis quirk on top/bottom-anchored absolute elements). Reduced
+  // motion gets a gentle fade instead of a slide.
+  function slideUp(node: HTMLElement) {
+    const dist = node.offsetHeight;
     return {
-      duration: reducedMotion ? 0 : duration,
+      duration: reducedMotion ? 160 : 300,
       easing: cubicOut,
-      css: (t: number) => `transform: translateY(${(1 - t) * 100}%)`,
+      css: (t: number) =>
+        reducedMotion
+          ? `opacity: ${t}`
+          : `transform: translateY(${(1 - t) * dist}px)`,
     };
   }
 </script>
@@ -108,7 +114,7 @@
       role="dialog"
       aria-modal="true"
       aria-label="Day forecast"
-      transition:slideUp={{ duration: 300 }}
+      transition:slideUp
     >
       <button
         class="x"
