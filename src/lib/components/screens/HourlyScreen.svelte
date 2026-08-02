@@ -38,9 +38,13 @@
 
 <style>
   /* No horizontal padding: the temperature line runs full-bleed, edge to edge
-     (HourlyChart clamps its tooltip so it stays inside the card). */
+     (HourlyChart clamps its tooltip so it stays inside the card). The chart is
+     centered vertically so it doesn't float at the top of a tall paper area. */
   .paper-zone {
     flex: 1;
     padding: 14px 0 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 </style>
