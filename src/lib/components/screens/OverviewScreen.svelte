@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cubicOut } from 'svelte/easing';
   import type { WeatherData } from '../../services/open-meteo';
   import { wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
   import { formatDateLine, formatDayShort } from '../../utils/time';
@@ -19,8 +20,8 @@
   const forecast = $derived(data.daily.slice(1, 5));
   const de = $derived(settings.locale === 'de');
 
-  // Forecast stays minimal (day · icon · high); tapping a day opens a small
-  // modal with the full detail, so the base layout never shifts.
+  // Forecast stays minimal (day · icon · high); tapping a day slides up a
+  // detail panel over the white area, so the base layout never shifts.
   let openDay = $state<number | null>(null);
   const detail = $derived(openDay !== null ? forecast[openDay] : null);
   let closeBtn = $state<HTMLButtonElement>();
@@ -28,6 +29,19 @@
   $effect(() => {
     if (detail) closeBtn?.focus();
   });
+
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+
+  // Slide by exactly the panel's own height (no measuring, smooth both ways).
+  function slideUp(_node: Element, { duration = 300 }: { duration?: number }) {
+    return {
+      duration: reducedMotion ? 0 : duration,
+      easing: cubicOut,
+      css: (t: number) => `transform: translateY(${(1 - t) * 100}%)`,
+    };
+  }
 </script>
 
 <svelte:window
@@ -94,6 +108,7 @@
       role="dialog"
       aria-modal="true"
       aria-label="Day forecast"
+      transition:slideUp={{ duration: 300 }}
     >
       <button
         class="x"
@@ -214,6 +229,8 @@
     border: none;
     cursor: pointer;
   }
+  /* Fills the white paper area seamlessly — no radius or shadow, so it reads as
+     the paper itself rather than a floating window. */
   .sheet {
     position: absolute;
     left: 0;
@@ -221,18 +238,16 @@
     bottom: 0;
     top: var(--color-zone);
     background: var(--paper);
-    border-radius: 20px 20px 0 0;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.12);
-    padding: 22px 26px calc(20px + var(--safe-bottom, 0px));
+    padding: 6px 22px 22px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 18px;
-    animation: slideup 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    gap: 16px;
+    will-change: transform;
   }
   .x {
     position: absolute;
-    top: 12px;
+    top: 10px;
     right: 14px;
     padding: 4px;
     color: var(--paper-ink);
@@ -243,15 +258,14 @@
   .head {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
   }
   .date {
-    font-size: 15px;
-    font-weight: 500;
+    font-size: clamp(13px, 4cqw, 15px);
     color: var(--paper-ink-strong);
   }
   .cond {
-    font-size: 12px;
+    font-size: clamp(11px, 3.4cqw, 13px);
     color: var(--paper-ink);
   }
   .stats {
@@ -263,11 +277,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
   }
   .stat .v {
-    font-size: 22px;
-    font-weight: 500;
+    font-size: clamp(14px, 4.4cqw, 17px);
     color: var(--paper-ink-strong);
   }
   .stat .k {
@@ -276,15 +289,7 @@
     text-transform: lowercase;
   }
 
-  @keyframes slideup {
-    from {
-      transform: translateY(100%);
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .sheet {
-      animation: none;
-    }
     .tile {
       transition: none;
     }
