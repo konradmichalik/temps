@@ -228,23 +228,17 @@ pub fn create_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Compose the tray icon: a white silhouette (macOS recolors it as a template
-/// image) plus, when the color indicator is enabled, a temperature-colored dot
-/// in the bottom-right corner.
-///
-/// When the dot is drawn the icon can no longer be a template image (templates
-/// carry no color), so it renders as a white cloud + colored dot. This is the
-/// same tradeoff beacon accepts for its opt-in indicator; the default (no dot)
-/// stays a clean, appearance-adaptive template.
+/// Whiten the glyph into a macOS template image (appearance-adaptive in the
+/// menubar). The frontend supplies the current weather glyph as PNG bytes.
 #[cfg(target_os = "macos")]
-fn create_tray_icon(base_bytes: &[u8], show_dot: bool, rgb: [u8; 3]) -> (Vec<u8>, u32, u32) {
+fn create_tray_icon(base_bytes: &[u8]) -> (Vec<u8>, u32, u32) {
     use image::{GenericImageView, RgbaImage};
 
     let base = image::load_from_memory(base_bytes).expect("failed to decode tray icon");
     let (w, h) = base.dimensions();
     let mut canvas = RgbaImage::from(base.to_rgba8());
 
-    // Step 1: every non-transparent pixel becomes white.
+    // Every non-transparent pixel becomes white; macOS recolors the template.
     for pixel in canvas.pixels_mut() {
         if pixel.0[3] != 0 {
             pixel.0[0] = 255;
@@ -253,48 +247,21 @@ fn create_tray_icon(base_bytes: &[u8], show_dot: bool, rgb: [u8; 3]) -> (Vec<u8>
         }
     }
 
-    if show_dot {
-        let radius = w as f32 * 0.24;
-        let r_sq = radius * radius;
-        let dot_cx = w as f32 - radius - 1.0;
-        let dot_cy = h as f32 - radius - 1.0;
-        for y in 0..h {
-            for x in 0..w {
-                let dx = x as f32 - dot_cx;
-                let dy = y as f32 - dot_cy;
-                let dist_sq = dx * dx + dy * dy;
-                if dist_sq <= r_sq {
-                    let dist = dist_sq.sqrt();
-                    let alpha = ((radius - dist) / 1.5).clamp(0.0, 1.0);
-                    let pixel = canvas.get_pixel_mut(x, y);
-                    pixel.0[0] = (rgb[0] as f32 * alpha + pixel.0[0] as f32 * (1.0 - alpha)) as u8;
-                    pixel.0[1] = (rgb[1] as f32 * alpha + pixel.0[1] as f32 * (1.0 - alpha)) as u8;
-                    pixel.0[2] = (rgb[2] as f32 * alpha + pixel.0[2] as f32 * (1.0 - alpha)) as u8;
-                    if pixel.0[3] == 0 {
-                        pixel.0[3] = (255.0 * alpha) as u8;
-                    }
-                }
-            }
-        }
-    }
-
     (canvas.into_raw(), w, h)
 }
 
-/// `(show_dot, rgb, temp_text, icon_key)` last rendered — skip identical updates.
-type TrayState = (bool, [u8; 3], String, Option<String>);
+/// `(temp_text, icon_key)` last rendered — skip identical updates.
+type TrayState = (String, Option<String>);
 
 fn last_tray_state() -> &'static Mutex<Option<TrayState>> {
     static STATE: std::sync::OnceLock<Mutex<Option<TrayState>>> = std::sync::OnceLock::new();
     STATE.get_or_init(|| Mutex::new(None))
 }
 
-/// Update the tray from the frontend: optional temperature text next to the
-/// icon and an optional temperature-colored indicator dot.
+/// Update the tray from the frontend: the current weather glyph (as a template
+/// image) plus the temperature text next to it.
 pub fn update_tray_icon(
     app: &AppHandle,
-    rgb: [u8; 3],
-    show_dot: bool,
     temp_text: Option<String>,
     icon_png: Option<Vec<u8>>,
     icon_key: Option<String>,
@@ -304,7 +271,7 @@ pub fn update_tray_icon(
     };
 
     let title = temp_text.unwrap_or_default();
-    let key = (show_dot, rgb, title.clone(), icon_key);
+    let key = (title.clone(), icon_key);
     if last_tray_state().lock().unwrap().as_ref() == Some(&key) {
         return Ok(());
     }
@@ -314,19 +281,18 @@ pub fn update_tray_icon(
         // The frontend renders the current weather glyph; fall back to the
         // bundled silhouette if it couldn't (unknown code, decode failure).
         let base = icon_png.as_deref().unwrap_or(TRAY_ICON_BYTES);
-        let (rgba, w, h) = create_tray_icon(base, show_dot, rgb);
+        let (rgba, w, h) = create_tray_icon(base);
         let icon = Image::new_owned(rgba, w, h);
         // Order matters: Tauri's set_icon hardcodes template=false, so set the
-        // template flag last to leave the icon in the intended mode.
+        // template flag last to keep the icon appearance-adaptive.
         tray.set_icon(Some(icon)).map_err(|e| e.to_string())?;
-        tray.set_icon_as_template(!show_dot)
-            .map_err(|e| e.to_string())?;
+        tray.set_icon_as_template(true).map_err(|e| e.to_string())?;
         tray.set_title(Some(&title)).map_err(|e| e.to_string())?;
     }
 
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (rgb, show_dot, icon_png);
+        let _ = icon_png;
         tray.set_title(Some(&title)).map_err(|e| e.to_string())?;
     }
 

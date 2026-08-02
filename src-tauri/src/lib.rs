@@ -54,19 +54,16 @@ fn quit_app(app: AppHandle) {
     app.exit(0);
 }
 
-/// Push the current temperature color / text to the tray (color indicator +
-/// optional menubar temperature text). Called by the frontend when the weather
-/// or the relevant settings change.
+/// Push the current weather glyph + temperature text to the tray. Called by the
+/// frontend whenever the weather changes.
 #[tauri::command]
 fn update_tray(
     app: AppHandle,
-    rgb: [u8; 3],
-    show_dot: bool,
     temp_text: Option<String>,
     icon_png: Option<Vec<u8>>,
     icon_key: Option<String>,
 ) -> Result<(), String> {
-    tray::update_tray_icon(&app, rgb, show_dot, temp_text, icon_png, icon_key)
+    tray::update_tray_icon(&app, temp_text, icon_png, icon_key)
 }
 
 /// Register (or replace) the global toggle shortcut.

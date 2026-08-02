@@ -18,7 +18,6 @@
   import { rainAlert } from './lib/stores/rain-alert.svelte';
   import { update } from './lib/stores/update.svelte';
   import { APP_VERSION } from './lib/version';
-  import { tempToColor } from './lib/utils/temp-color';
   import { wmoToIcon } from './lib/utils/wmo-icons';
   import { renderTrayIconPng } from './lib/utils/tray-icon';
   import { invoke, listen } from './lib/utils/tauri';
@@ -27,11 +26,6 @@
 
   let settingsOpen = $state(false);
   let ready = $state(false);
-
-  function hexToRgb(hex: string): [number, number, number] {
-    const n = parseInt(hex.slice(1), 16);
-    return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
-  }
 
   onMount(() => {
     const unlisten: Array<() => void> = [];
@@ -67,22 +61,15 @@
     if (weather.data) void rainAlert.check(weather.data);
   });
 
-  // Tray: current weather icon + temperature text, plus optional color dot.
+  // Tray: current weather icon (white template) + temperature text.
   $effect(() => {
     if (!ready || !weather.data) return;
     const cur = weather.data.current;
-    const rgb = hexToRgb(tempToColor(cur.temperature, settings.unit));
-    // Read all reactive settings synchronously before the async boundary so
-    // the effect tracks them (reads after `await` would not register).
-    const showDot = settings.colorIndicator;
     const iconName = wmoToIcon(cur.weatherCode, cur.isDay);
-    // The menubar always shows the current temperature next to the weather icon.
     const tempText = `${Math.round(cur.temperature)}°`;
     void (async () => {
       const iconPng = await renderTrayIconPng(iconName);
       await invoke('update_tray', {
-        rgb,
-        showDot,
         tempText,
         iconPng,
         iconKey: iconName,

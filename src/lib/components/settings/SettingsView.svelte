@@ -354,15 +354,6 @@
       </div>
 
       <label class="row">
-        <span>{de ? 'Farbindikator' : 'Color indicator'}</span>
-        <input
-          type="checkbox"
-          bind:checked={settings.colorIndicator}
-          onchange={change}
-        />
-      </label>
-
-      <label class="row">
         <span>{de ? 'Regenwarnung' : 'Rain alert'}</span>
         <input
           type="checkbox"
