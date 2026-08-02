@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+mod location;
 mod polling;
 mod tray;
 
@@ -64,6 +66,20 @@ fn update_tray(
     icon_key: Option<String>,
 ) -> Result<(), String> {
     tray::update_tray_icon(&app, temp_text, icon_png, icon_key)
+}
+
+/// One-shot current location via CoreLocation (macOS). Errors elsewhere.
+#[tauri::command]
+fn get_current_location(app: AppHandle) -> Result<(f64, f64), String> {
+    #[cfg(target_os = "macos")]
+    {
+        location::request(&app)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        Err("unsupported".into())
+    }
 }
 
 /// Register (or replace) the global toggle shortcut.
@@ -148,6 +164,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             quit_app,
             update_tray,
+            get_current_location,
             set_global_shortcut,
             clear_global_shortcut,
             polling::start_polling,

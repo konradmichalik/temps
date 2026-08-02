@@ -21,6 +21,7 @@
   import { update } from '../../stores/update.svelte';
   import { APP_VERSION } from '../../version';
   import { isTauri } from '../../utils/tauri';
+  import { getCurrentCoords, canLocate } from '../../utils/geolocation';
 
   /** Native-shell settings (tray, autostart, notifications) only exist in the app. */
   const tauri = isTauri();
@@ -105,32 +106,28 @@
     onclose();
   }
 
-  const canLocate =
-    typeof navigator !== 'undefined' && 'geolocation' in navigator;
+  const locatable = canLocate();
   let locating = $state(false);
   let locateError = $state(false);
 
-  function useLocation() {
-    if (!canLocate || locating) return;
+  async function useLocation() {
+    if (locating) return;
     locating = true;
     locateError = false;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        pick({
-          name: de ? 'Mein Standort' : 'My location',
-          country: '',
-          latitude: Math.round(pos.coords.latitude * 100) / 100,
-          longitude: Math.round(pos.coords.longitude * 100) / 100,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        });
-        locating = false;
-      },
-      () => {
-        locating = false;
-        locateError = true;
-      },
-      { timeout: 8000 },
-    );
+    try {
+      const { latitude, longitude } = await getCurrentCoords();
+      pick({
+        name: de ? 'Mein Standort' : 'My location',
+        country: '',
+        latitude: Math.round(latitude * 100) / 100,
+        longitude: Math.round(longitude * 100) / 100,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+    } catch {
+      locateError = true;
+    } finally {
+      locating = false;
+    }
   }
 
   function change() {
@@ -243,7 +240,7 @@
         </ul>
       {/if}
 
-      {#if canLocate}
+      {#if locatable}
         <button
           class="locate"
           style:color={accentDeep}
