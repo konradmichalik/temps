@@ -1,4 +1,4 @@
-name: Deploy Landing Page
+name: Deploy Pages (landing + standalone)
 
 on:
   push:
@@ -6,9 +6,11 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
+      - 'app.html'
       - 'package.json'
       - 'vite.config.ts'
       - 'vite.landing.config.ts'
+      - 'vite.standalone.config.ts'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -34,7 +36,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Build landing page (live demo)
+      - name: Build landing page + standalone app
         run: npm run build:pages
 
       - uses: actions/upload-pages-artifact@v3

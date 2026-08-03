@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:pages": "vite build --config vite.landing.config.ts",
+    "build:pages": "vite build --config vite.landing.config.ts && vite build --config vite.standalone.config.ts",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",

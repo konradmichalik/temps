@@ -2,11 +2,12 @@
   "name": "temps",
   "short_name": "temps",
   "description": "A simple but smart weather app",
-  "start_url": "/app.html",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#80BBB2",
   "theme_color": "#80BBB2",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }
