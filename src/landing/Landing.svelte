@@ -125,7 +125,6 @@
 
     <div class="demo">
       <div class="popover" aria-label="Live app demo">
-        <span class="tray-arrow" aria-hidden="true"></span>
         <AppCard />
       </div>
       <div class="scenarios" role="group" aria-label="Demo weather">
@@ -290,18 +289,6 @@
   .popover {
     position: relative;
     filter: drop-shadow(0 24px 60px rgba(0, 0, 0, 0.3));
-  }
-  .tray-arrow {
-    position: absolute;
-    top: -9px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-bottom: 9px solid #fff;
-    z-index: 2;
   }
   .scenarios {
     display: flex;
