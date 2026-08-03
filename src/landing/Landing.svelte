@@ -24,16 +24,34 @@
 
   const FEATURES = [
     {
-      title: 'Overview',
-      body: 'Full-bleed temperature color, the current condition, and a four-day forecast under a drifting wave silhouette.',
+      icon: '🌡️',
+      title: 'Colored by the weather',
+      body: 'A full-bleed background that shifts across a nine-color palette as the temperature changes — you feel the forecast before you read it.',
     },
     {
-      title: 'Hourly',
-      body: 'A hand-rolled SVG chart (no chart library) for the next 24 hours, with a gliding tooltip that tracks your pointer.',
+      icon: '📈',
+      title: 'Hand-rolled hourly chart',
+      body: 'The next 24 hours as one smooth SVG line — no chart library — with a tooltip that glides along as you point.',
     },
     {
-      title: 'Details',
-      body: 'Wind, feels-like, humidity, pressure, UV, sunrise/sunset and the moon phase — plus air quality and pollen in Europe.',
+      icon: '📅',
+      title: 'Tap any day',
+      body: 'The four-day forecast stays minimal; tap a day and a sheet slides up with its high, low and chance of rain.',
+    },
+    {
+      icon: '🌗',
+      title: 'Sun & moon, all day',
+      body: 'A full-width day/night wave shows exactly where the sun sits right now — and a crescent takes over after dark.',
+    },
+    {
+      icon: '🍃',
+      title: 'Air quality & pollen',
+      body: 'European AQI and pollen next to wind, feels-like, humidity, pressure, UV and the moon phase.',
+    },
+    {
+      icon: '🔒',
+      title: 'Private by design',
+      body: 'No API keys, no accounts, no tracking — just Open-Meteo, and an update check against GitHub releases.',
     },
   ];
 
@@ -100,6 +118,9 @@
       <p class="platform">
         macOS 13+ · Apple Silicon &amp; Intel · MIT licensed
       </p>
+      <p class="webapp">
+        No Mac? <a href="app/">Open the web app →</a>
+      </p>
     </div>
 
     <div class="demo">
@@ -121,9 +142,10 @@
     </div>
   </section>
 
-  <section class="panel features">
+  <section class="features" aria-label="Features">
     {#each FEATURES as f (f.title)}
-      <article>
+      <article class="feature">
+        <span class="ficon" aria-hidden="true">{f.icon}</span>
         <h2>{f.title}</h2>
         <p>{f.body}</p>
       </article>
@@ -306,21 +328,68 @@
     padding: clamp(24px, 4vw, 40px);
     margin: 14px 0;
   }
+
+  /* Feature grid: individual cards, each with an icon accent and a subtle
+     hover lift. */
   .features {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: clamp(20px, 3vw, 40px);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    margin: 14px 0;
   }
-  .features h2,
+  .feature {
+    background: rgba(255, 255, 255, 0.94);
+    border-radius: 14px;
+    padding: clamp(20px, 2.4vw, 28px);
+    transition:
+      transform 200ms ease,
+      box-shadow 200ms ease;
+  }
+  .feature:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
+  }
+  .ficon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: rgba(0, 0, 0, 0.05);
+    font-size: 20px;
+    margin-bottom: 14px;
+  }
+  .feature h2 {
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--paper-ink-strong);
+    margin-bottom: 6px;
+  }
+  .feature p {
+    color: var(--paper-ink);
+    font-size: 14px;
+    line-height: 1.55;
+  }
   .shortcuts h2 {
     font-size: 19px;
     font-weight: 500;
     margin-bottom: 8px;
   }
-  .features p {
-    color: var(--paper-ink);
-    font-size: 15px;
-    line-height: 1.55;
+
+  .webapp {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+  .webapp a {
+    color: var(--ink-strong);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    padding-bottom: 1px;
+  }
+  .webapp a:hover {
+    border-bottom-color: var(--ink-strong);
   }
 
   .shortcuts ul {
