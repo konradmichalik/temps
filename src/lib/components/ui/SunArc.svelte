@@ -84,6 +84,13 @@
   const markerLeft = 50;
   const markerTop = $derived((curveY(nowF) / VB_H) * SVG_H);
 
+  // Where sunrise/sunset fall in the now-centered window (screen fraction),
+  // clamped slightly so their labels stay on-screen at the extremes.
+  const posOf = (frac: number) => (((frac - nowF + 0.5) % 1) + 1) % 1;
+  const clampX = (x: number) => Math.min(Math.max(x * 100, 8), 92);
+  const sunriseX = $derived(clampX(posOf(srF)));
+  const sunsetX = $derived(clampX(posOf(ssF)));
+
   // Eight short rays around the sun body (static geometry, colored at runtime).
   const RAYS = Array.from({ length: 8 }, (_, i) => {
     const a = (i * Math.PI) / 4;
@@ -152,22 +159,36 @@
         {/if}
       </svg>
     </span>
+
+    <!-- Sunrise/sunset sit on the horizon at their spot in the window. -->
+    <span
+      class="event"
+      style:left="{sunriseX}%"
+      style:background={accentDeep}
+      aria-hidden="true"
+    ></span>
+    <span
+      class="event"
+      style:left="{sunsetX}%"
+      style:background={accentDeep}
+      aria-hidden="true"
+    ></span>
   </div>
 
   <div class="times">
-    <span class="t">
+    <span class="t" style:left="{sunriseX}%">
       <WeatherIcon
         name="sunrise"
-        size={20}
+        size={18}
         secondary={accent}
         primary={accentDeep}
       />
       {formatTime(sunrise, timezone, settings.hour12)}
     </span>
-    <span class="t">
+    <span class="t" style:left="{sunsetX}%">
       <WeatherIcon
         name="sunset"
-        size={20}
+        size={18}
         secondary={accent}
         primary={accentDeep}
       />
@@ -200,17 +221,29 @@
       left 600ms ease,
       top 600ms ease;
   }
+  /* Sunrise/sunset dots sit on the horizon line (MID = 22 of 44 ≈ 50% of the
+     54px svg) at their x. */
+  .event {
+    position: absolute;
+    top: 27px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
   .times {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 18px;
+    position: relative;
+    height: 18px;
     font-size: clamp(10px, 3cqw, 12px);
     color: var(--paper-ink);
   }
   .t {
+    position: absolute;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
     gap: 5px;
+    white-space: nowrap;
   }
 
   @media (prefers-reduced-motion: reduce) {
