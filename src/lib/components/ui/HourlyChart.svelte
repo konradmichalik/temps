@@ -35,15 +35,17 @@
 
   const W = 300;
   const H = 110;
-  // Full-bleed horizontally: the line runs edge to edge. Vertical padding keeps
-  // crests/troughs (and the marker) off the clipping edges.
-  const PAD_X = 0;
-  const PAD_Y = 22;
+  // Full-bleed horizontally: the line runs edge to edge. The temperature line
+  // lives in the upper band; hourly rain-chance bars sit in the lower band.
+  const LINE_TOP = 16;
+  const LINE_BOTTOM = 74;
+  const RAIN_TOP = 84;
+  const RAIN_BOTTOM = 106;
 
   /** Rendered pixel width, used to clamp the tooltip inside the card. */
   let chartWidth = $state(0);
   /** Half the tooltip pill's footprint — keeps it fully visible at both ends. */
-  const TOOLTIP_HALF = 50;
+  const TOOLTIP_HALF = 56;
 
   const coords = $derived.by(() => {
     if (points.length < 2) return [];
@@ -52,10 +54,29 @@
     const max = Math.max(...temps);
     const span = Math.max(max - min, 1);
     return points.map((p, i) => ({
-      x: PAD_X + (i / (points.length - 1)) * (W - PAD_X * 2),
-      y: PAD_Y + (1 - (p.temperature - min) / span) * (H - PAD_Y * 2),
+      x: (i / (points.length - 1)) * W,
+      y:
+        LINE_TOP +
+        (1 - (p.temperature - min) / span) * (LINE_BOTTOM - LINE_TOP),
       point: p,
     }));
+  });
+
+  const bars = $derived.by(() => {
+    const n = points.length;
+    if (!n) return [];
+    const slot = W / n;
+    return points.map((p, i) => {
+      const h =
+        (Math.min(Math.max(p.precipitationProbability, 0), 100) / 100) *
+        (RAIN_BOTTOM - RAIN_TOP);
+      return {
+        x: i * slot + slot * 0.15,
+        w: slot * 0.7,
+        y: RAIN_BOTTOM - h,
+        h,
+      };
+    });
   });
 
   /** Catmull-Rom spline converted to a cubic Bézier path. */
@@ -127,6 +148,18 @@
   onpointerleave={() => (activeIndex = null)}
 >
   <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none">
+    {#each bars as b, i (b.x)}
+      {#if b.h > 0}
+        <rect
+          x={b.x}
+          y={b.y}
+          width={b.w}
+          height={b.h}
+          fill={color}
+          opacity={activeIndex === i ? 0.55 : 0.28}
+        />
+      {/if}
+    {/each}
     <path
       bind:this={pathEl}
       d={path}
@@ -164,6 +197,9 @@
       >
       <span class="when"
         >{formatHourLabel(hovered.point.time, timezone, locale)}</span
+      >
+      <span class="rain"
+        >☂ {Math.round(hovered.point.precipitationProbability)}%</span
       >
     </div>
   {/if}
@@ -207,7 +243,8 @@
     font-size: 13px;
     font-weight: 600;
   }
-  .when {
+  .when,
+  .rain {
     font-size: 10px;
     color: var(--paper-ink);
   }
