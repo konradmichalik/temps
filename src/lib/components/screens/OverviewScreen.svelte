@@ -4,6 +4,7 @@
   import { formatDateLine, formatDayShort } from '../../utils/time';
   import { settings } from '../../stores/settings.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
+  import DayChart from '../ui/DayChart.svelte';
 
   interface Props {
     data: WeatherData;
@@ -22,6 +23,16 @@
   let openDay = $state<number | null>(null);
   const detail = $derived(openDay !== null ? forecast[openDay] : null);
   let closeBtn = $state<HTMLButtonElement>();
+
+  /** The selected day's hourly points (temperature trend + rain). */
+  const dayHours = $derived.by(() => {
+    if (!detail) return [];
+    const start = detail.date.getTime();
+    const end = start + 24 * 3600 * 1000;
+    return data.hourly.filter(
+      (h) => h.time.getTime() >= start && h.time.getTime() < end,
+    );
+  });
 
   $effect(() => {
     if (detail) closeBtn?.focus();
@@ -113,7 +124,7 @@
       <div class="head">
         <WeatherIcon
           name={wmoToIcon(detail.weatherCode, true)}
-          size={40}
+          size={34}
           secondary={accent}
           primary={accentDeep}
         />
@@ -126,6 +137,10 @@
           </div>
         </div>
       </div>
+
+      {#if dayHours.length > 1}
+        <DayChart points={dayHours} color={accent} colorDeep={accentDeep} />
+      {/if}
 
       <div class="stats">
         <div class="stat">
@@ -221,19 +236,20 @@
      the paper itself rather than a floating window. A definite height (cqh, the
      card is a size container) makes the slide's translateY(100%) unambiguous in
      every engine; a plain CSS keyframe applies the start state synchronously, so
-     there's no flash or jump. The color zone is 64%, so the paper area is 36cqh. */
+     there's no flash or jump. Slightly taller than the 36cqh paper area to give
+     the day chart room; the top rides a little into the color zone. */
   .sheet {
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 36cqh;
+    height: 44cqh;
     background: var(--paper);
-    padding: 6px 22px 22px;
+    padding: 14px 22px 20px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 16px;
+    gap: 14px;
     will-change: transform;
     animation: sheet-up 300ms ease-out;
   }
