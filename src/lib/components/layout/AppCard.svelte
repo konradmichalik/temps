@@ -12,6 +12,7 @@
   import Carousel from './Carousel.svelte';
   import EffectsLayer from '../effects/EffectsLayer.svelte';
   import Waves from '../effects/Waves.svelte';
+  import CurrentReading from '../ui/CurrentReading.svelte';
   import OverviewScreen from '../screens/OverviewScreen.svelte';
   import HourlyScreen from '../screens/HourlyScreen.svelte';
   import DetailsScreen from '../screens/DetailsScreen.svelte';
@@ -37,6 +38,8 @@
   let now = $state(new Date());
   /** Focus the city search when settings is opened via Cmd+F. */
   let focusSearch = $state(false);
+  /** Visible carousel screen; drives the shared hero (screens 0 & 1). */
+  let activeIndex = $state(0);
 
   onMount(() => {
     const t = setInterval(() => (now = new Date()), 30_000);
@@ -142,7 +145,18 @@
   <div class="paper-backdrop"></div>
 
   {#if data}
-    <Carousel screens={[overview, hourly, details]} dotColor={accent} />
+    <!-- Shared hero: the Overview and Hourly screens have an identical top, so
+         it lives here as one fixed layer instead of inside each slide — the
+         reading stays put while only the lower content swipes. Faded out on the
+         Details screen, which has its own slim header. -->
+    <div class="shared-hero" class:away={activeIndex === 2} aria-hidden="true">
+      <CurrentReading current={data.current} nowcast={data.minutely15} />
+    </div>
+    <Carousel
+      bind:activeIndex
+      screens={[overview, hourly, details]}
+      dotColor={accent}
+    />
   {/if}
 
   <header>
@@ -227,6 +241,23 @@
     z-index: 0;
   }
 
+  /* Shared hero for the Overview + Hourly screens: fixed in the color zone so
+     it doesn't swipe with those slides; only the paper content below moves.
+     Faded out on Details (its own header takes over). */
+  .shared-hero {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--color-zone);
+    z-index: 2;
+    pointer-events: none;
+    transition: opacity 240ms ease;
+  }
+  .shared-hero.away {
+    opacity: 0;
+  }
+
   header {
     position: absolute;
     top: var(--safe-top, 0px);
@@ -237,6 +268,7 @@
     align-items: center;
     padding: 14px 16px;
     pointer-events: none;
+    z-index: 3;
   }
   header .menu {
     pointer-events: auto;

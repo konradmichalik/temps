@@ -4,7 +4,6 @@
   import { formatDateLine, formatDayShort } from '../../utils/time';
   import { settings } from '../../stores/settings.svelte';
   import WeatherIcon from '../ui/WeatherIcon.svelte';
-  import CurrentReading from '../ui/CurrentReading.svelte';
 
   interface Props {
     data: WeatherData;
@@ -15,7 +14,6 @@
 
   let { data, accent, accentDeep = accent, active = true }: Props = $props();
 
-  const c = $derived(data.current);
   const forecast = $derived(data.daily.slice(1, 5));
   const de = $derived(settings.locale === 'de');
 
@@ -36,7 +34,7 @@
   }}
 />
 
-<CurrentReading current={c} nowcast={data.minutely15} {active} />
+<div class="hero-spacer"></div>
 
 <div class="paper-zone" class:in={active}>
   <div class="meta st" style:--d="240ms">
@@ -152,6 +150,11 @@
 {/if}
 
 <style>
+  /* Reserves the color zone; the shared hero (in AppCard) paints over it. */
+  .hero-spacer {
+    height: var(--color-zone);
+    flex: none;
+  }
   .paper-zone {
     flex: 1;
     padding: 6px 22px 22px;

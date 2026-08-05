@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { WeatherData } from '../../services/open-meteo';
   import { settings } from '../../stores/settings.svelte';
-  import CurrentReading from '../ui/CurrentReading.svelte';
   import HourlyChart from '../ui/HourlyChart.svelte';
 
   interface Props {
@@ -13,7 +12,6 @@
 
   let { data, accent, accentDeep = accent, active = true }: Props = $props();
 
-  const c = $derived(data.current);
   const next24 = $derived.by(() => {
     const now = Date.now();
     const start = data.hourly.findIndex(
@@ -23,7 +21,7 @@
   });
 </script>
 
-<CurrentReading current={c} {active} />
+<div class="hero-spacer"></div>
 
 <div class="paper-zone" class:in={active}>
   <HourlyChart
@@ -37,6 +35,11 @@
 </div>
 
 <style>
+  /* Reserves the color zone; the shared hero (in AppCard) paints over it. */
+  .hero-spacer {
+    height: var(--color-zone);
+    flex: none;
+  }
   /* No horizontal padding: the temperature line runs full-bleed, edge to edge
      (HourlyChart clamps its tooltip so it stays inside the card). The chart is
      centered vertically so it doesn't float at the top of a tall paper area. */

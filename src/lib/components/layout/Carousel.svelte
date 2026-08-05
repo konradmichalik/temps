@@ -11,12 +11,17 @@
     screens: Snippet<[boolean]>[];
     /** Dot color on the currently visible zone. */
     dotColor?: string;
+    /** Index of the currently visible screen (bindable). */
+    activeIndex?: number;
   }
 
-  let { screens, dotColor = 'rgba(255,255,255,0.9)' }: Props = $props();
+  let {
+    screens,
+    dotColor = 'rgba(255,255,255,0.9)',
+    activeIndex = $bindable(0),
+  }: Props = $props();
 
   let container = $state<HTMLElement | null>(null);
-  let active = $state(0);
 
   $effect(() => {
     if (!container) return;
@@ -25,7 +30,7 @@
       (entries) => {
         for (const e of entries) {
           if (e.isIntersecting)
-            active = sections.indexOf(e.target as HTMLElement);
+            activeIndex = sections.indexOf(e.target as HTMLElement);
         }
       },
       { root: container, threshold: 0.6 },
@@ -43,7 +48,7 @@
   }
 
   export function cycle(delta = 1) {
-    goTo(active + delta);
+    goTo(activeIndex + delta);
   }
 
   function onKeydown(e: KeyboardEvent) {
@@ -66,17 +71,17 @@
 
 <div class="carousel" bind:this={container}>
   {#each screens as screen, i (i)}
-    <section>{@render screen(i === active)}</section>
+    <section>{@render screen(i === activeIndex)}</section>
   {/each}
 </div>
 
 <nav class="dots" aria-label="Screens">
   {#each screens, i}
     <button
-      class:active={i === active}
+      class:active={i === activeIndex}
       style:--dot={dotColor}
       aria-label="Screen {i + 1}"
-      aria-current={i === active}
+      aria-current={i === activeIndex}
       onclick={() => goTo(i)}
     ></button>
   {/each}
