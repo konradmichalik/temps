@@ -155,13 +155,15 @@
       </div>
 
       {#if dayHours.length > 1}
-        <DayChart
-          points={dayHours}
-          timezone={data.timezone}
-          color={accent}
-          colorDeep={accentDeep}
-          hour12={settings.hour12}
-        />
+        <div class="chart-bleed">
+          <DayChart
+            points={dayHours}
+            timezone={data.timezone}
+            color={accent}
+            colorDeep={accentDeep}
+            hour12={settings.hour12}
+          />
+        </div>
       {/if}
 
       <div class="stats">
@@ -271,6 +273,10 @@
     justify-content: center;
     gap: 14px;
     will-change: transform;
+  }
+  /* Day chart runs edge to edge, breaking out of the sheet's side padding. */
+  .chart-bleed {
+    margin: 0 -22px;
   }
   .x {
     position: absolute;
