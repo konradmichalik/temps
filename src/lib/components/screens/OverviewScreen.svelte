@@ -60,8 +60,6 @@
   }}
 />
 
-<div class="hero-spacer"></div>
-
 <div class="paper-zone" class:in={active}>
   <div class="meta st" style:--d="240ms">
     <span
@@ -189,13 +187,15 @@
 {/if}
 
 <style>
-  /* Reserves the color zone; the shared hero (in AppCard) paints over it. */
-  .hero-spacer {
-    height: var(--color-zone);
-    flex: none;
-  }
+  /* The shared hero (in AppCard) owns the color zone; this fills the white area
+     below it. Absolutely positioned (not a flex percentage height) so WebKit
+     keeps it in place through the detail-sheet open/close reflow. */
   .paper-zone {
-    flex: 1;
+    position: absolute;
+    top: var(--color-zone);
+    left: 0;
+    right: 0;
+    bottom: 0;
     padding: 6px 22px 22px;
     display: flex;
     flex-direction: column;

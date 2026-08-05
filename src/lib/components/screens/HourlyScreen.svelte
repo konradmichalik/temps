@@ -21,8 +21,6 @@
   });
 </script>
 
-<div class="hero-spacer"></div>
-
 <div class="paper-zone" class:in={active}>
   <HourlyChart
     points={next24}
@@ -35,16 +33,16 @@
 </div>
 
 <style>
-  /* Reserves the color zone; the shared hero (in AppCard) paints over it. */
-  .hero-spacer {
-    height: var(--color-zone);
-    flex: none;
-  }
-  /* No horizontal padding: the temperature line runs full-bleed, edge to edge
-     (HourlyChart clamps its tooltip so it stays inside the card). The chart is
-     centered vertically so it doesn't float at the top of a tall paper area. */
+  /* Fills the white area below the shared hero. Absolutely positioned (not a
+     flex percentage height) so WebKit keeps it stable across reflows. No
+     horizontal padding: the temperature line runs full-bleed, edge to edge
+     (HourlyChart clamps its tooltip). The chart is centered vertically. */
   .paper-zone {
-    flex: 1;
+    position: absolute;
+    top: var(--color-zone);
+    left: 0;
+    right: 0;
+    bottom: 0;
     padding: 14px 0 20px;
     display: flex;
     flex-direction: column;
