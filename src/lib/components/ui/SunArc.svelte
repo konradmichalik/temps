@@ -179,7 +179,7 @@
     <span class="t" style:left="{sunriseX}%">
       <WeatherIcon
         name="sunrise"
-        size={18}
+        size={24}
         secondary={accent}
         primary={accentDeep}
       />
@@ -188,7 +188,7 @@
     <span class="t" style:left="{sunsetX}%">
       <WeatherIcon
         name="sunset"
-        size={18}
+        size={24}
         secondary={accent}
         primary={accentDeep}
       />
@@ -233,7 +233,7 @@
   }
   .times {
     position: relative;
-    height: 18px;
+    height: 26px;
     font-size: clamp(10px, 3cqw, 12px);
     color: var(--paper-ink);
   }
