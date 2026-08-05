@@ -2,17 +2,29 @@
   /**
    * Compact day chart for the forecast detail sheet: a smooth temperature line
    * (Catmull-Rom, no chart library) over faint hourly precipitation-probability
-   * bars — the day's temperature trend and rain at a glance. Static (no tooltip).
+   * bars — the day's temperature trend and rain at a glance. A pointer reveals a
+   * marker + tooltip (time · temp · rain), like the hourly screen.
    */
   import type { HourlyPoint } from '../../services/open-meteo';
+  import { formatTime } from '../../utils/time';
 
   interface Props {
     points: HourlyPoint[];
+    timezone: string;
     color: string;
     colorDeep?: string;
+    hour12?: boolean;
+    unitSymbol?: string;
   }
 
-  let { points, color, colorDeep = color }: Props = $props();
+  let {
+    points,
+    timezone,
+    color,
+    colorDeep = color,
+    hour12 = false,
+    unitSymbol = '°',
+  }: Props = $props();
 
   const W = 300;
   const H = 64;
@@ -32,6 +44,7 @@
       y:
         LINE_TOP +
         (1 - (p.temperature - min) / span) * (LINE_BOTTOM - LINE_TOP),
+      point: p,
     }));
   });
 
@@ -64,52 +77,134 @@
       return { x: i * slot + slot * 0.2, w: slot * 0.6, y: RAIN_BOTTOM - h, h };
     });
   });
+
+  let chartWidth = $state(0);
+  const TOOLTIP_HALF = 46;
+  let activeIndex = $state<number | null>(null);
+  const hovered = $derived(activeIndex !== null ? coords[activeIndex] : null);
+
+  const tooltipLeft = $derived.by(() => {
+    if (!hovered || !chartWidth) return 0;
+    const px = (hovered.x / W) * chartWidth;
+    return Math.min(Math.max(px, TOOLTIP_HALF), chartWidth - TOOLTIP_HALF);
+  });
+
+  function onPointerMove(e: PointerEvent) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * W;
+    let best = 0;
+    let bestDist = Infinity;
+    for (let i = 0; i < coords.length; i++) {
+      const d = Math.abs(coords[i].x - x);
+      if (d < bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    activeIndex = best;
+  }
 </script>
 
-<svg
-  class="daychart"
-  viewBox="0 0 {W} {H}"
-  preserveAspectRatio="none"
+<div
+  class="chart"
+  bind:clientWidth={chartWidth}
+  onpointermove={onPointerMove}
+  onpointerleave={() => (activeIndex = null)}
   role="img"
   aria-label="Temperature trend and hourly rain chance for the day"
 >
-  <line
-    x1="0"
-    y1={RAIN_BOTTOM}
-    x2={W}
-    y2={RAIN_BOTTOM}
-    stroke={color}
-    stroke-width="1"
-    opacity="0.18"
-    vector-effect="non-scaling-stroke"
-  />
-  {#each bars as b (b.x)}
-    {#if b.h > 0}
-      <rect
-        x={b.x}
-        y={b.y}
-        width={b.w}
-        height={b.h}
-        fill={color}
-        opacity="0.3"
+  <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none">
+    <line
+      x1="0"
+      y1={RAIN_BOTTOM}
+      x2={W}
+      y2={RAIN_BOTTOM}
+      stroke={color}
+      stroke-width="1"
+      opacity="0.18"
+      vector-effect="non-scaling-stroke"
+    />
+    {#each bars as b, i (b.x)}
+      {#if b.h > 0}
+        <rect
+          x={b.x}
+          y={b.y}
+          width={b.w}
+          height={b.h}
+          fill={color}
+          opacity={activeIndex === i ? 0.55 : 0.3}
+        />
+      {/if}
+    {/each}
+    <path
+      d={path}
+      fill="none"
+      stroke={colorDeep}
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      vector-effect="non-scaling-stroke"
+    />
+    {#if hovered}
+      <circle
+        class="marker"
+        r="3"
+        fill={colorDeep}
+        style:transform="translate({hovered.x}px, {hovered.y}px)"
       />
     {/if}
-  {/each}
-  <path
-    d={path}
-    fill="none"
-    stroke={colorDeep}
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    vector-effect="non-scaling-stroke"
-  />
-</svg>
+  </svg>
+
+  {#if hovered}
+    <div class="tooltip" style:left="{tooltipLeft}px">
+      <span class="temp" style:color={colorDeep}
+        >{Math.round(hovered.point.temperature)}{unitSymbol}</span
+      >
+      <span class="when"
+        >{formatTime(hovered.point.time, timezone, hour12)}</span
+      >
+      <span class="rain"
+        >☂ {Math.round(hovered.point.precipitationProbability)}%</span
+      >
+    </div>
+  {/if}
+</div>
 
 <style>
-  .daychart {
+  .chart {
+    position: relative;
+    touch-action: none;
+  }
+  svg {
     display: block;
     width: 100%;
     height: 54px;
+    overflow: visible;
+  }
+  .marker {
+    transition: transform 100ms ease-out;
+  }
+  .tooltip {
+    position: absolute;
+    top: -16px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: var(--paper);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    transition: left 100ms ease-out;
+    pointer-events: none;
+    font-size: 11px;
+  }
+  .temp {
+    font-weight: 600;
+  }
+  .when,
+  .rain {
+    color: var(--paper-ink);
   }
 </style>

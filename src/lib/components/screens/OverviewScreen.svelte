@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cubicOut } from 'svelte/easing';
   import type { WeatherData } from '../../services/open-meteo';
   import { wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
   import { formatDateLine, formatDayShort } from '../../utils/time';
@@ -37,6 +38,20 @@
   $effect(() => {
     if (detail) closeBtn?.focus();
   });
+
+  // JS-driven slide (not CSS) so it plays even under the global
+  // prefers-reduced-motion rule; translates by measured pixels (no % / cqh) so
+  // it behaves identically in every engine.
+  function slideUp(node: HTMLElement, { duration = 300 } = {}) {
+    const dist = node.offsetHeight;
+    return {
+      duration,
+      easing: cubicOut,
+      tick: (t: number) => {
+        node.style.transform = `translateY(${(1 - t) * dist}px)`;
+      },
+    };
+  }
 </script>
 
 <svelte:window
@@ -103,6 +118,7 @@
       role="dialog"
       aria-modal="true"
       aria-label="Day forecast"
+      transition:slideUp
     >
       <button
         class="x"
@@ -139,7 +155,13 @@
       </div>
 
       {#if dayHours.length > 1}
-        <DayChart points={dayHours} color={accent} colorDeep={accentDeep} />
+        <DayChart
+          points={dayHours}
+          timezone={data.timezone}
+          color={accent}
+          colorDeep={accentDeep}
+          hour12={settings.hour12}
+        />
       {/if}
 
       <div class="stats">
@@ -233,17 +255,15 @@
     cursor: pointer;
   }
   /* Fills the white paper area seamlessly — no radius or shadow, so it reads as
-     the paper itself rather than a floating window. A definite height (cqh, the
-     card is a size container) makes the slide's translateY(100%) unambiguous in
-     every engine; a plain CSS keyframe applies the start state synchronously, so
-     there's no flash or jump. Slightly taller than the 36cqh paper area to give
-     the day chart room; the top rides a little into the color zone. */
+     the paper itself rather than a floating window. Anchored with plain
+     percentage top/bottom (no cqh) so it positions identically in every engine;
+     the top rides a little into the color zone to give the day chart room. */
   .sheet {
     position: absolute;
     left: 0;
     right: 0;
+    top: 56%;
     bottom: 0;
-    height: 44cqh;
     background: var(--paper);
     padding: 14px 22px 20px;
     display: flex;
@@ -251,12 +271,6 @@
     justify-content: center;
     gap: 14px;
     will-change: transform;
-    animation: sheet-up 300ms ease-out;
-  }
-  @keyframes sheet-up {
-    from {
-      transform: translateY(100%);
-    }
   }
   .x {
     position: absolute;
