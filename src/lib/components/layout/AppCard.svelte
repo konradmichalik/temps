@@ -147,10 +147,15 @@
   {#if data}
     <!-- Shared hero: the Overview and Hourly screens have an identical top, so
          it lives here as one fixed layer instead of inside each slide — the
-         reading stays put while only the lower content swipes. Faded out on the
-         Details screen, which has its own slim header. -->
-    <div class="shared-hero" class:away={activeIndex === 2} aria-hidden="true">
-      <CurrentReading current={data.current} nowcast={data.minutely15} />
+         reading stays put while only the lower content swipes (no re-animation
+         between them). On Details it hides and replays its entrance when you
+         return, driven by `active`. -->
+    <div class="shared-hero" aria-hidden="true">
+      <CurrentReading
+        current={data.current}
+        nowcast={data.minutely15}
+        active={activeIndex !== 2}
+      />
     </div>
     <Carousel
       bind:activeIndex
@@ -242,8 +247,9 @@
   }
 
   /* Shared hero for the Overview + Hourly screens: fixed in the color zone so
-     it doesn't swipe with those slides; only the paper content below moves.
-     Faded out on Details (its own header takes over). */
+     it doesn't swipe with those slides; only the paper content below moves. Its
+     content shows/hides (and replays its entrance) via the CurrentReading's
+     `active` flag, so Details — which has its own header — is left clear. */
   .shared-hero {
     position: absolute;
     top: 0;
@@ -252,10 +258,6 @@
     height: var(--color-zone);
     z-index: 2;
     pointer-events: none;
-    transition: opacity 240ms ease;
-  }
-  .shared-hero.away {
-    opacity: 0;
   }
 
   header {

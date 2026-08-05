@@ -112,6 +112,8 @@
     bottom: calc(8px + var(--safe-bottom, 0px));
     left: 0;
     right: 0;
+    /* Above the Details paper-zone (z-index:1), which otherwise covers them. */
+    z-index: 4;
     display: flex;
     justify-content: center;
     gap: 6px;
