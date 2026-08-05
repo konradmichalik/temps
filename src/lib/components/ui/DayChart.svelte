@@ -132,7 +132,7 @@
           width={b.w}
           height={b.h}
           fill={color}
-          opacity={activeIndex === i ? 0.55 : 0.3}
+          opacity={activeIndex === i ? 0.85 : 0.55}
         />
       {/if}
     {/each}

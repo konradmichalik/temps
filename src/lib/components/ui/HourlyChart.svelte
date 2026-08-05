@@ -37,10 +37,10 @@
   const H = 110;
   // Full-bleed horizontally: the line runs edge to edge. The temperature line
   // lives in the upper band; hourly rain-chance bars sit in the lower band.
-  const LINE_TOP = 16;
-  const LINE_BOTTOM = 74;
-  const RAIN_TOP = 84;
-  const RAIN_BOTTOM = 106;
+  const LINE_TOP = 14;
+  const LINE_BOTTOM = 68;
+  const RAIN_TOP = 76;
+  const RAIN_BOTTOM = 108;
 
   /** Rendered pixel width, used to clamp the tooltip inside the card. */
   let chartWidth = $state(0);
@@ -71,8 +71,8 @@
         (Math.min(Math.max(p.precipitationProbability, 0), 100) / 100) *
         (RAIN_BOTTOM - RAIN_TOP);
       return {
-        x: i * slot + slot * 0.15,
-        w: slot * 0.7,
+        x: i * slot + slot * 0.08,
+        w: slot * 0.84,
         y: RAIN_BOTTOM - h,
         h,
       };
@@ -148,6 +148,16 @@
   onpointerleave={() => (activeIndex = null)}
 >
   <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none">
+    <line
+      x1="0"
+      y1={RAIN_BOTTOM}
+      x2={W}
+      y2={RAIN_BOTTOM}
+      stroke={color}
+      stroke-width="1"
+      opacity="0.25"
+      vector-effect="non-scaling-stroke"
+    />
     {#each bars as b, i (b.x)}
       {#if b.h > 0}
         <rect
@@ -156,7 +166,7 @@
           width={b.w}
           height={b.h}
           fill={color}
-          opacity={activeIndex === i ? 0.55 : 0.28}
+          opacity={activeIndex === i ? 0.85 : 0.55}
         />
       {/if}
     {/each}
