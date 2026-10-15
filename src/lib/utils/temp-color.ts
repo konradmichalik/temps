@@ -50,6 +50,66 @@ export function darken(hex: string, factor = 0.35): string {
   );
 }
 
+/** Tile surface the accent marks sit on (`--tile` in app.css). */
+export const TILE_SURFACE = '#f5f4f1';
+
+const MARK_CONTRAST = 3.3;
+
+/** WCAG 2.x contrast ratio between two hex colors. */
+export function contrastRatio(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+/**
+ * The accent for marks on a tile (icon highlights, bars, scale dots): the
+ * accent darkened until it holds 3.3:1 on the tile surface, so the lighter
+ * palette colors still meet WCAG 1.4.11.
+ */
+export function accentDeep(accent: string): string {
+  let factor = 0.18;
+  let out = darken(accent, factor);
+  while (contrastRatio(out, TILE_SURFACE) < MARK_CONTRAST && factor < 0.6) {
+    factor = Math.round((factor + 0.02) * 100) / 100;
+    out = darken(accent, factor);
+  }
+  return out;
+}
+
+/** Ink on paper and tiles (`--ink` in app.css). */
+export const INK = '#1f2630';
+
+/** Text color for a colored background: ink or white, whichever contrasts more. */
+export function inkOn(background: string): string {
+  return contrastRatio(background, INK) >= contrastRatio(background, '#ffffff')
+    ? INK
+    : '#ffffff';
+}
+
+/**
+ * The background darkened in 0.02 steps until its text color reaches 4.5:1
+ * (WCAG 1.4.3). Most palette colors pass unchanged.
+ */
+export function textSafe(background: string): string {
+  let factor = 0;
+  let out = background;
+  while (contrastRatio(out, inkOn(out)) < 4.5 && factor < 0.5) {
+    factor = Math.round((factor + 0.02) * 100) / 100;
+    out = darken(background, factor);
+  }
+  return out;
+}
+
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff].map((v) => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 export function backgroundColor(
   temp: number,
   unit: Unit,
