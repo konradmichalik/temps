@@ -38,6 +38,10 @@ desktop card share identical proportions.
 
 ## 🧭 Design notes
 
+- **UI rules live in [docs/design/rules.md](docs/design/rules.md)** — tile
+  anatomy, colour tokens, icon colours and motion, accessibility. The reference
+  boards are listed in [docs/design/screens.md](docs/design/screens.md).
+
 - **One request feeds all three screens** (`services/open-meteo.ts`, `timezone=auto`);
   display always uses the location's timezone, never the system's.
 - **No chart library** — the hourly line is Catmull-Rom smoothing with a
