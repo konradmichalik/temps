@@ -6,13 +6,23 @@
    * are animated; prefers-reduced-motion disables everything via app.css.
    */
   import type { Effect } from '../../utils/wmo-icons';
+  import WeatherIcon from '../ui/WeatherIcon.svelte';
 
   interface Props {
     kind: Effect;
     enabled?: boolean;
+    /** Night without precipitation: a few twinkling stars. */
+    night?: boolean;
   }
 
-  let { kind, enabled = true }: Props = $props();
+  let { kind, enabled = true, night = false }: Props = $props();
+
+  // Kept clear of the centered hero reading.
+  const STARS = [
+    { left: 9, top: 14, size: 20 },
+    { left: 80, top: 10, size: 16 },
+    { left: 86, top: 24, size: 22 },
+  ];
 
   // Deterministic pseudo-random so SSR/demo screenshots are stable.
   function rng(seed: number) {
@@ -62,9 +72,29 @@
 
   const showRain = $derived(enabled && (kind === 'rain' || kind === 'thunder'));
   const showSnow = $derived(enabled && kind === 'snow');
+  const showStars = $derived(enabled && night && kind === null);
 </script>
 
 <div class="effects" aria-hidden="true">
+  {#if showStars}
+    {#each STARS as s, i (i)}
+      <span
+        class="star"
+        style:left="{s.left}%"
+        style:top="{s.top}%"
+        style:animation-delay="{i * 0.9}s"
+      >
+        <WeatherIcon
+          name="stars"
+          size={s.size}
+          primary="#f3d9a4"
+          secondary="rgba(255,255,255,0.55)"
+          label=""
+        />
+      </span>
+    {/each}
+  {/if}
+
   {#if showRain}
     <div class="rain">
       {#each drops as d, i (i)}
@@ -152,6 +182,21 @@
     }
     100% {
       transform: translate(0, 110vh);
+    }
+  }
+
+  .star {
+    position: absolute;
+  }
+
+  @keyframes twinkle {
+    50% {
+      opacity: 0.25;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .star {
+      animation: twinkle 3s ease-in-out infinite;
     }
   }
 

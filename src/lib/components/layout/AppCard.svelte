@@ -21,7 +21,7 @@
   import { settings } from '../../stores/settings.svelte';
   import { favorites } from '../../stores/favorites.svelte';
   import { air } from '../../stores/air.svelte';
-  import { tempToColor, darken } from '../../utils/temp-color';
+  import { tempToColor, accentDeep as deepen } from '../../utils/temp-color';
   import { formatTime } from '../../utils/time';
   import { randomCity } from '../../utils/cities';
   import { isTauri, invoke } from '../../utils/tauri';
@@ -121,8 +121,8 @@
   const accent = $derived(
     data ? tempToColor(data.current.temperature, settings.unit) : '#80BBB2',
   );
-  /** Darkened sibling — the highlight tone of the two-tone accent pair. */
-  const accentDeep = $derived(darken(accent, 0.18));
+  /** Marks on the tiles: the accent darkened to 3.3:1 on the tile surface. */
+  const accentDeep = $derived(deepen(accent));
 </script>
 
 {#snippet overview(active: boolean)}
@@ -132,14 +132,23 @@
   {#if data}<HourlyScreen {data} {accent} {accentDeep} {active} />{/if}
 {/snippet}
 {#snippet details(active: boolean)}
-  {#if data}<DetailsScreen {data} {accent} {accentDeep} {active} />{/if}
+  {#if data}<DetailsScreen {data} {accent} {accentDeep} {active} {now} />{/if}
 {/snippet}
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="card" class:standalone style:background-color={weather.bgColor}>
+<div
+  class="card"
+  class:standalone
+  class:motion={settings.effectsEnabled}
+  style:background-color={weather.bgColor}
+>
   <div class="fx-zone">
-    <EffectsLayer kind={weather.effect} enabled={settings.effectsEnabled} />
+    <EffectsLayer
+      kind={weather.effect}
+      enabled={settings.effectsEnabled}
+      night={data ? !data.current.isDay : false}
+    />
     <Waves animated={settings.waveAnimation} />
   </div>
   <div class="paper-backdrop"></div>

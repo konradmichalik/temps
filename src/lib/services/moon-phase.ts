@@ -12,6 +12,17 @@ export function moonPhase(date: Date = new Date()): number {
   return (((days % SYNODIC) + SYNODIC) % SYNODIC) / SYNODIC;
 }
 
+/** Lit fraction of the disc, 0..1. */
+export function moonIllumination(phase: number): number {
+  return (1 - Math.cos(2 * Math.PI * phase)) / 2;
+}
+
+/** Whole days until the next full moon (0 on the day itself). */
+export function daysUntilFullMoon(date: Date = new Date()): number {
+  const ahead = (((0.5 - moonPhase(date)) % 1) + 1) % 1;
+  return Math.round(ahead * SYNODIC) % Math.round(SYNODIC);
+}
+
 const PHASE_ICONS = [
   'moon-newmoon',
   'moon-waxing-crescent',

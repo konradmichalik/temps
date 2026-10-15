@@ -1,3 +1,5 @@
+@import './lib/styles/motion.css';
+
 /* Temps design tokens — palette lives in utils/temp-color.ts (design DNA). */
 
 /* Rubik is self-hosted in the Tauri build (Phase 2); the web scaffold falls
@@ -11,9 +13,15 @@
   --ink-soft: rgba(255, 255, 255, 0.72);
   --ink-faint: rgba(255, 255, 255, 0.45);
 
+  /* Paper, tiles and ink: docs/design/rules.md#colour */
   --paper: #ffffff;
-  --paper-ink: #6b7280;
-  --paper-ink-strong: #374151;
+  --tile: #f5f4f1;
+  --tile-hover: #edebe6;
+  --ink: #1f2630;
+  --ink-muted: #59606b;
+  --paper-ink: var(--ink-muted);
+  --paper-ink-strong: var(--ink);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   --popover-width: 340px;
   --popover-height: 480px;

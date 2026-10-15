@@ -236,3 +236,21 @@ export function windDirectionIcon(degrees: number): string {
   const idx = Math.round((((degrees % 360) + 360) % 360) / 45) % 8;
   return `compass-${dirs[idx]}`;
 }
+
+const MOONLIGHT = '#f3d9a4';
+
+/**
+ * Two tones for an icon on the colour band: white over translucent white, and
+ * moonlight on the moon at night. The plain `moon` is a single part (base), so
+ * the moonlight goes there too. docs/design/rules.md#icons
+ */
+export function heroIconColors(
+  icon: string,
+  isDay: boolean,
+): { primary: string; secondary: string } {
+  const moonlit = !isDay && icon.startsWith('moon');
+  return {
+    primary: moonlit ? MOONLIGHT : '#ffffff',
+    secondary: moonlit && icon === 'moon' ? MOONLIGHT : 'rgba(255,255,255,0.5)',
+  };
+}

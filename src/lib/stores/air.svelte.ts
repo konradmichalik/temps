@@ -14,6 +14,7 @@ class AirStore {
       this.data = {
         aqi: 24,
         pm25: 6.1,
+        leading: 'ozone',
         pollen: [
           { species: 'grass_pollen', value: 28 },
           { species: 'birch_pollen', value: 9 },

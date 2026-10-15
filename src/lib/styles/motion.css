@@ -1,0 +1,164 @@
+/*
+ * Icon motion (docs/design/rules.md#icon-motion). Parts (.hl, .base) only
+ * change opacity and only the whole svg moves, so a drawing never comes apart.
+ * Data glyphs (compass, barometer, moon phases) stay still. Runs only with the
+ * effects switch on (.motion on the card) and without reduced motion.
+ */
+
+@keyframes wi-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes wi-sway {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(5deg);
+  }
+}
+@keyframes wi-drift {
+  0%,
+  100% {
+    transform: translateX(-4%);
+  }
+  50% {
+    transform: translateX(4%);
+  }
+}
+@keyframes wi-bob {
+  0%,
+  100% {
+    transform: translateY(3%);
+  }
+  50% {
+    transform: translateY(-5%);
+  }
+}
+@keyframes wi-rain {
+  50% {
+    opacity: 0.4;
+  }
+}
+@keyframes wi-flash {
+  0%,
+  58%,
+  66%,
+  100% {
+    opacity: 1;
+  }
+  62%,
+  70% {
+    opacity: 0.35;
+  }
+}
+@keyframes wi-glow {
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes hero-float {
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Whole icon. Spin only for shapes centred on 16/16; sway pivots on the
+     drawn foot. */
+  .motion .wi-sun svg,
+  .motion .wi-snowflake svg {
+    animation: wi-spin 22s linear infinite;
+  }
+  .motion .wi-moon svg {
+    animation: wi-sway 9s ease-in-out infinite;
+  }
+  .motion .wi-umbrella svg {
+    transform-origin: 50% 74%;
+    animation: wi-sway 5s ease-in-out infinite;
+  }
+  .motion .wi-windsock svg {
+    transform-origin: 27% 79%;
+    animation: wi-sway 2.4s ease-in-out infinite;
+  }
+  .motion
+    :is(
+      .wi-cloud,
+      .wi-clouds,
+      .wi-sun-cloud,
+      .wi-moon-cloud,
+      .wi-cloud-rain,
+      .wi-cloud-rain-alt,
+      .wi-cloud-snow,
+      .wi-cloud-sleet,
+      .wi-cloud-wind,
+      .wi-cloud-smog,
+      .wi-sun-cloud-rain,
+      .wi-sun-cloud-lightning,
+      .wi-sun-fog,
+      .wi-moon-fog,
+      .wi-fog,
+      .wi-lightning,
+      .wi-rainbow,
+      .wi-wind
+    )
+    svg {
+    animation: wi-drift 6s ease-in-out infinite;
+  }
+  .motion
+    :is(.wi-stars, .wi-shooting-star, .wi-pollen, .wi-raindrop, .wi-humidity)
+    svg {
+    animation: wi-bob 3s ease-in-out infinite;
+  }
+
+  /* Parts: opacity only. */
+  .motion
+    :is(
+      .wi-cloud-rain,
+      .wi-cloud-rain-alt,
+      .wi-sun-cloud-rain,
+      .wi-cloud-sleet,
+      .wi-wind,
+      .wi-cloud-wind,
+      .wi-cloud-smog
+    )
+    .hl {
+    animation: wi-rain 1.6s ease-in-out infinite;
+  }
+  .motion :is(.wi-lightning, .wi-sun-cloud-lightning) .hl {
+    animation: wi-flash 3.4s linear infinite;
+  }
+  .motion
+    :is(
+      .wi-cloud-snow,
+      .wi-stars,
+      .wi-shooting-star,
+      .wi-pollen,
+      .wi-sun-high,
+      .wi-sun-cloud,
+      .wi-moon-cloud,
+      .wi-sunrise,
+      .wi-sunset,
+      .wi-rainbow,
+      .wi-thermometer-medium,
+      .wi-thermometer-hot,
+      .wi-thermometer-cold
+    )
+    .hl {
+    animation: wi-glow 3.2s ease-in-out infinite;
+  }
+
+  /* Markers show a position and the sky stars only twinkle: no icon motion. */
+  .motion .sunarc .wi svg,
+  .motion .effects .wi svg,
+  .motion .effects .wi .hl {
+    animation: none;
+  }
+
+  .motion .hero-float {
+    display: inline-flex;
+    animation: hero-float 6s ease-in-out infinite;
+  }
+}

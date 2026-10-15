@@ -1,12 +1,15 @@
 <script lang="ts">
   /**
    * Compact day chart for the forecast detail sheet: a smooth temperature line
-   * (Catmull-Rom, no chart library) over faint hourly precipitation-probability
-   * bars — the day's temperature trend and rain at a glance. A pointer reveals a
-   * marker + tooltip (time · temp · rain), like the hourly screen.
+   * in ink (Catmull-Rom, no chart library) over hourly precipitation-probability
+   * bars in the deep accent — the day's temperature trend and rain at a glance.
+   * A pointer reveals a marker + tooltip (time · temp · rain), like the hourly
+   * screen.
    */
   import type { HourlyPoint } from '../../services/open-meteo';
   import { formatTime } from '../../utils/time';
+  import WeatherIcon from './WeatherIcon.svelte';
+  import { rainBarHeight } from '../../services/metrics';
 
   interface Props {
     points: HourlyPoint[];
@@ -32,6 +35,8 @@
   const LINE_BOTTOM = 40;
   const RAIN_TOP = 46;
   const RAIN_BOTTOM = 62;
+  /** 2px on screen: the svg draws H units into 54px. */
+  const MIN_BAR = (2 * H) / 54;
 
   const coords = $derived.by(() => {
     if (points.length < 2) return [];
@@ -71,9 +76,11 @@
     if (!n) return [];
     const slot = W / n;
     return points.map((p, i) => {
-      const h =
-        (Math.min(Math.max(p.precipitationProbability, 0), 100) / 100) *
-        (RAIN_BOTTOM - RAIN_TOP);
+      const h = rainBarHeight(
+        p.precipitationProbability,
+        RAIN_BOTTOM - RAIN_TOP,
+        MIN_BAR,
+      );
       return { x: i * slot + slot * 0.2, w: slot * 0.6, y: RAIN_BOTTOM - h, h };
     });
   });
@@ -131,7 +138,7 @@
           y={b.y}
           width={b.w}
           height={b.h}
-          fill={color}
+          fill={colorDeep}
           opacity={activeIndex === i ? 0.85 : 0.55}
         />
       {/if}
@@ -139,7 +146,7 @@
     <path
       d={path}
       fill="none"
-      stroke={colorDeep}
+      stroke="var(--ink)"
       stroke-width="2"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -149,7 +156,7 @@
       <circle
         class="marker"
         r="3"
-        fill={colorDeep}
+        fill="var(--ink)"
         style:transform="translate({hovered.x}px, {hovered.y}px)"
       />
     {/if}
@@ -157,14 +164,20 @@
 
   {#if hovered}
     <div class="tooltip" style:left="{tooltipLeft}px">
-      <span class="temp" style:color={colorDeep}
+      <span class="temp"
         >{Math.round(hovered.point.temperature)}{unitSymbol}</span
       >
       <span class="when"
         >{formatTime(hovered.point.time, timezone, hour12)}</span
       >
       <span class="rain"
-        >☂ {Math.round(hovered.point.precipitationProbability)}%</span
+        ><WeatherIcon
+          name="umbrella"
+          size={14}
+          primary={colorDeep}
+          secondary="var(--ink-muted)"
+          label=""
+        />{Math.round(hovered.point.precipitationProbability)}%</span
       >
     </div>
   {/if}
@@ -202,9 +215,15 @@
   }
   .temp {
     font-weight: 600;
+    color: var(--ink);
   }
   .when,
   .rain {
-    color: var(--paper-ink);
+    color: var(--ink-muted);
+  }
+  .rain {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
   }
 </style>
