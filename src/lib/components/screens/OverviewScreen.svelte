@@ -38,7 +38,9 @@
   });
 
   $effect(() => {
-    if (detail) closeBtn?.focus();
+    // preventScroll: the sheet still sits below the card while it slides in,
+    // and WebKit would scroll the carousel up to reveal the button.
+    if (detail) closeBtn?.focus({ preventScroll: true });
   });
 
   // JS-driven slide (not CSS) so it plays even under the global
