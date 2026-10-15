@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{
     image::Image,
-    menu::{MenuBuilder, MenuItemBuilder},
+    menu::{ContextMenu, MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     App, AppHandle, Emitter, Manager, PhysicalPosition,
 };
@@ -195,10 +195,23 @@ pub fn create_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .icon_as_template(cfg!(target_os = "macos"))
-        .menu(&menu)
+        // The menu is deliberately not attached to the status item: macOS then
+        // opens it on every click, including the left one, and the click never
+        // reaches the tray handler. It is popped up on right click instead.
         .show_menu_on_left_click(false)
         .tooltip("Temps")
-        .on_tray_icon_event(|tray, event| {
+        .on_tray_icon_event(move |tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Right,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                if let Some(window) = tray.app_handle().get_webview_window("main") {
+                    let _ = menu.popup(window.as_ref().window());
+                }
+                return;
+            }
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
