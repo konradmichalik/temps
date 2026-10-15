@@ -155,16 +155,6 @@
   onpointerleave={() => (activeIndex = null)}
 >
   <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none">
-    <line
-      x1="0"
-      y1={RAIN_BOTTOM}
-      x2={W}
-      y2={RAIN_BOTTOM}
-      stroke={color}
-      stroke-width="1"
-      opacity="0.25"
-      vector-effect="non-scaling-stroke"
-    />
     {#each bars as b, i (b.x)}
       {#if b.h > 0}
         <rect
