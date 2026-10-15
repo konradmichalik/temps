@@ -46,7 +46,7 @@ Reihenfolge ist wichtig, damit die GitHub-Redirects wie gewünscht landen:
 - **Vorgehen:** beacon-Repo als struktureller Ausgangspunkt (kein Fork — frisches Repo, Struktur und generische Teile übernehmen)
 - **Stack:** Tauri 2, Svelte 5 (Runes), TypeScript, Tailwind 4, Vite 7, Vitest
 - **Tauri-Plugins:** `plugin-http`, `plugin-store`, `plugin-global-shortcut`, `plugin-notification`, `plugin-shell` (für externe Links), Autostart via `tauri-plugin-autostart`
-- **Fenster:** frameless, transparent, `alwaysOnTop`, `skipTaskbar`, ~340×480 px (Popover-Format des Originals, schmaler als beacons 420 px), NSPanel-Subclass aus beacons `lib.rs` übernehmen (`canBecomeKeyWindow`-Override für Keyboard-Input)
+- **Fenster:** frameless, transparent, `alwaysOnTop`, `skipTaskbar`, ~340×480 px (Popover-Format des Originals, schmaler als beacons 420 px). Das Fenster bleibt taos eigene Klasse mit Popover-Level, Space- und Vollbild-Verhalten; kein Klassentausch auf NSPanel, weil `object_setClass` für taos Fensterklasse unzulässig ist (eigene Ivar, KVO). `canBecomeKeyWindow` liefert tao bereits.
 - **Dependency-Policy:** keine Chart-Library, keine Carousel-Library, kein moment/dayjs (native `Intl`), keine jQuery-Altlasten
 
 ### Verzeichnisstruktur

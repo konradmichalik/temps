@@ -16,41 +16,6 @@ fn current_shortcut() -> &'static Mutex<Option<String>> {
     S.get_or_init(|| Mutex::new(None))
 }
 
-/// Custom NSPanel subclass that accepts keyboard input and suppresses NSBeep.
-///
-/// A default NSPanel needs a title/resize bar to become key window; our frameless
-/// tray popover has neither, so we override `canBecomeKeyWindow` to return true.
-/// `noResponderFor:` is overridden to suppress the system beep for unhandled keys.
-#[cfg(target_os = "macos")]
-mod panel {
-    use objc2::define_class;
-    use objc2::runtime::NSObjectProtocol;
-    use objc2_app_kit::NSPanel;
-
-    pub struct TempsPanelIvars;
-
-    define_class!(
-        #[unsafe(super = NSPanel)]
-        #[name = "TempsPanel"]
-        #[ivars = TempsPanelIvars]
-        pub struct TempsPanel;
-
-        unsafe impl NSObjectProtocol for TempsPanel {}
-
-        impl TempsPanel {
-            #[unsafe(method(canBecomeKeyWindow))]
-            fn can_become_key_window(&self) -> bool {
-                true
-            }
-
-            #[unsafe(method(noResponderFor:))]
-            fn no_responder_for(&self, _selector: objc2::runtime::Sel) {
-                // Intentionally empty — prevents NSBeep() for unhandled key events.
-            }
-        }
-    );
-}
-
 #[tauri::command]
 fn quit_app(app: AppHandle) {
     app.exit(0);
@@ -175,9 +140,12 @@ pub fn run() {
         .expect("error while running temps");
 }
 
-/// Native macOS setup: convert the window to an NSPanel and install the
-/// auto-hide / panel-drift observers. All NSPanel mutation happens on the main
-/// thread (setup runs there; the health-check dispatches back to main).
+/// Native macOS setup: configure the popover window and install the
+/// auto-hide / drift observers. All window mutation happens on the main thread
+/// (setup runs there; the health-check dispatches back to main).
+///
+/// The window keeps tao's class, which already answers `canBecomeKeyWindow`
+/// from the window's `focusable` setting, so keyboard input needs no subclass.
 #[cfg(target_os = "macos")]
 fn setup_macos(app: &mut tauri::App) {
     use objc2::runtime::{AnyClass, AnyObject};
@@ -185,25 +153,8 @@ fn setup_macos(app: &mut tauri::App) {
     // No dock icon — this is a menubar app.
     app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-    let Some(window) = app.get_webview_window("main") else {
+    if app.get_webview_window("main").is_none() {
         return;
-    };
-
-    // Convert NSWindow → TempsPanel so the popover floats above fullscreen apps
-    // and can accept keyboard input.
-    if let Ok(ns_window) = window.ns_window() {
-        use objc2::ClassType;
-        use objc2_app_kit::{NSPanel, NSWindowStyleMask};
-        unsafe {
-            let obj = &*(ns_window as *const AnyObject);
-            AnyObject::set_class(obj, panel::TempsPanel::class());
-
-            let panel = &*(ns_window as *const NSPanel);
-            let mut mask = panel.styleMask();
-            mask |= NSWindowStyleMask::NonactivatingPanel;
-            panel.setStyleMask(mask);
-            panel.setBecomesKeyOnlyIfNeeded(false);
-        }
     }
 
     tray::reconfigure_panel(app.handle());
