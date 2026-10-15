@@ -130,7 +130,7 @@ Three primitives only. A new tile uses one of them or changes this list first.
 
 Time series (rain per hour, the sun wave) appear only in 2×1 tiles.
 
-Rain bars, in every chart: a dry hour (0 %) draws nothing, and any chance above 0 stays at least 2px tall (`rainBarHeight()` in `metrics.ts`). A sliver under a pixel reads as a baseline, not as rain.
+Rain bars, in every chart: a dry hour (0 %) draws nothing, and any chance above 0 stays at least 2px tall (`rainBarHeight()` in `metrics.ts`). A sliver under a pixel reads as a baseline, not as rain. The charts draw no baseline either: the bars stand on their own, and a dry day shows an empty lane instead of a line.
 
 ### Tiles and their data
 
@@ -159,10 +159,10 @@ All new fields were checked against the live API on 2026-10-14; both endpoints a
 | --- | --- | --- |
 | Grid | 3 columns, 6px gap | 2 columns, 8px gap |
 | Paper padding | 6px 12px 22px | 12px 16px 24px |
-| Tile height | 80px | 108px |
+| Tile height | 76px | 108px |
 | Tile padding | 7px 9px 8px | 11px 14px 12px |
 | Tile radius | 12px | 16px |
-| 2×1 sun tile height | 64px | 96px |
+| 2×1 sun tile height | 60px | 96px |
 | Details colour band | 144px (30 %). Today 34 % (`DetailsScreen.svelte:149`), which leaves no room for the sun tile | 200px |
 | Overview colour band | 64 %, the shared hero (`AppCard.svelte`) | unchanged |
 | Forecast tile | 116px high, 4 columns, 6px gap | unchanged |

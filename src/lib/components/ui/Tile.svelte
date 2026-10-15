@@ -84,7 +84,7 @@
   .tile {
     --tile-icon: 18px;
     --tile-glyph: 32px;
-    height: 80px;
+    height: 76px;
     box-sizing: border-box;
     padding: 7px 9px 8px;
     border-radius: 12px;
@@ -97,7 +97,7 @@
   }
   .wide {
     grid-column: 1 / -1;
-    height: 64px;
+    height: 60px;
     padding-bottom: 6px;
   }
   .eyebrow {

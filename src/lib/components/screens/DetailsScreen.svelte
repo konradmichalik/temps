@@ -373,6 +373,10 @@
     background: var(--paper);
     padding: 6px 12px 22px;
     overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .paper-zone::-webkit-scrollbar {
+    display: none;
   }
   .grid {
     list-style: none;
