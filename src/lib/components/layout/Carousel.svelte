@@ -99,9 +99,13 @@
   .carousel::-webkit-scrollbar {
     display: none;
   }
+  /* Each screen paints only inside its own slide: charts with
+     `overflow: visible` and the double-width waves would otherwise show at the
+     edge of the neighbouring screen. */
   section {
     position: relative;
     flex: 0 0 100%;
+    overflow: clip;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     display: flex;
