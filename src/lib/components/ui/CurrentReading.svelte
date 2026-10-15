@@ -7,7 +7,7 @@
    * upper halves match; an optional nowcast bar shows only where passed in.
    */
   import type { CurrentWeather, RainSlot } from '../../services/open-meteo';
-  import { wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
+  import { heroIconColors, wmoToIcon, wmoToLabel } from '../../utils/wmo-icons';
   import { settings } from '../../stores/settings.svelte';
   import WeatherIcon from './WeatherIcon.svelte';
   import NowcastBar from './NowcastBar.svelte';
@@ -21,6 +21,8 @@
 
   let { current, nowcast, active = true }: Props = $props();
 
+  const icon = $derived(wmoToIcon(current.weatherCode, current.isDay));
+  const colors = $derived(heroIconColors(icon, current.isDay));
   const feelsDiff = $derived(
     Math.abs(current.apparentTemperature - current.temperature) >= 3,
   );
@@ -31,12 +33,14 @@
     <div class="reading">
       <span class="temp-wrap st" style:--d="70ms">
         <span class="icon"
-          ><WeatherIcon
-            name={wmoToIcon(current.weatherCode, current.isDay)}
-            size={62}
-            primary="#ffffff"
-            secondary="rgba(255,255,255,0.42)"
-          /></span
+          ><span class="hero-float"
+            ><WeatherIcon
+              name={icon}
+              size={62}
+              primary={colors.primary}
+              secondary={colors.secondary}
+            /></span
+          ></span
         >
         <span class="temp"
           >{Math.round(current.temperature)}<span class="deg">°</span></span

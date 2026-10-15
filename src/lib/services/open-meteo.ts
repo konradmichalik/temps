@@ -18,11 +18,15 @@ export interface CurrentWeather {
   temperature: number;
   apparentTemperature: number;
   humidity: number;
+  /** Null when the model has no value for the place. */
+  dewPoint: number | null;
   weatherCode: number;
   isDay: boolean;
   windSpeed: number;
+  windGusts: number | null;
   windDirection: number;
-  pressure: number;
+  /** Sea-level pressure, comparable between places and over time. */
+  pressure: number | null;
   uvIndex: number;
 }
 
@@ -31,6 +35,8 @@ export interface HourlyPoint {
   temperature: number;
   weatherCode: number;
   precipitationProbability: number;
+  pressure: number | null;
+  uvIndex: number;
 }
 
 export interface DailyPoint {
@@ -74,14 +80,22 @@ export async function fetchWeather(
       'temperature_2m',
       'apparent_temperature',
       'relative_humidity_2m',
+      'dew_point_2m',
       'weather_code',
       'is_day',
       'wind_speed_10m',
+      'wind_gusts_10m',
       'wind_direction_10m',
-      'surface_pressure',
+      'pressure_msl',
       'uv_index',
     ].join(','),
-    hourly: 'temperature_2m,weather_code,precipitation_probability',
+    hourly: [
+      'temperature_2m',
+      'weather_code',
+      'precipitation_probability',
+      'pressure_msl',
+      'uv_index',
+    ].join(','),
     daily: [
       'weather_code',
       'temperature_2m_max',
@@ -140,11 +154,13 @@ export interface OpenMeteoResponse {
     temperature_2m: number;
     apparent_temperature: number;
     relative_humidity_2m: number;
+    dew_point_2m: number | null;
     weather_code: number;
     is_day: number;
     wind_speed_10m: number;
+    wind_gusts_10m: number | null;
     wind_direction_10m: number;
-    surface_pressure: number;
+    pressure_msl: number | null;
     uv_index: number;
   };
   hourly: {
@@ -152,6 +168,8 @@ export interface OpenMeteoResponse {
     temperature_2m: number[];
     weather_code: number[];
     precipitation_probability: number[];
+    pressure_msl: (number | null)[];
+    uv_index: (number | null)[];
   };
   daily: {
     time: string[];
@@ -182,11 +200,13 @@ export function transform(place: Place, r: OpenMeteoResponse): WeatherData {
       temperature: r.current.temperature_2m,
       apparentTemperature: r.current.apparent_temperature,
       humidity: r.current.relative_humidity_2m,
+      dewPoint: r.current.dew_point_2m ?? null,
       weatherCode: r.current.weather_code,
       isDay: r.current.is_day === 1,
       windSpeed: r.current.wind_speed_10m,
+      windGusts: r.current.wind_gusts_10m ?? null,
       windDirection: r.current.wind_direction_10m,
-      pressure: r.current.surface_pressure,
+      pressure: r.current.pressure_msl ?? null,
       uvIndex: r.current.uv_index,
     },
     hourly: r.hourly.time.map((t, i) => ({
@@ -194,6 +214,8 @@ export function transform(place: Place, r: OpenMeteoResponse): WeatherData {
       temperature: r.hourly.temperature_2m[i],
       weatherCode: r.hourly.weather_code[i],
       precipitationProbability: r.hourly.precipitation_probability[i] ?? 0,
+      pressure: r.hourly.pressure_msl?.[i] ?? null,
+      uvIndex: r.hourly.uv_index?.[i] ?? 0,
     })),
     daily: r.daily.time.map((t, i) => ({
       date: toDate(t + 'T12:00'),

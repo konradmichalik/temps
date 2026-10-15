@@ -10,6 +10,7 @@
   import { wmoToIcon } from '../../utils/wmo-icons';
   import { formatHourLabel } from '../../utils/time';
   import WeatherIcon from './WeatherIcon.svelte';
+  import { rainBarHeight } from '../../services/metrics';
 
   interface Props {
     points: HourlyPoint[];
@@ -41,11 +42,14 @@
   const LINE_BOTTOM = 68;
   const RAIN_TOP = 76;
   const RAIN_BOTTOM = 108;
+  /** 2px on screen: the svg draws H units into 130px. */
+  const MIN_BAR = (2 * H) / 130;
 
   /** Rendered pixel width, used to clamp the tooltip inside the card. */
   let chartWidth = $state(0);
-  /** Half the tooltip pill's footprint — keeps it fully visible at both ends. */
-  const TOOLTIP_HALF = 56;
+  /** Measured tooltip width; its text varies by locale and hour format. */
+  let tooltipWidth = $state(0);
+  const TOOLTIP_MARGIN = 6;
 
   const coords = $derived.by(() => {
     if (points.length < 2) return [];
@@ -67,9 +71,11 @@
     if (!n) return [];
     const slot = W / n;
     return points.map((p, i) => {
-      const h =
-        (Math.min(Math.max(p.precipitationProbability, 0), 100) / 100) *
-        (RAIN_BOTTOM - RAIN_TOP);
+      const h = rainBarHeight(
+        p.precipitationProbability,
+        RAIN_BOTTOM - RAIN_TOP,
+        MIN_BAR,
+      );
       return {
         x: i * slot + slot * 0.08,
         w: slot * 0.84,
@@ -120,7 +126,8 @@
   const tooltipLeft = $derived.by(() => {
     if (!hovered || !chartWidth) return 0;
     const px = (hovered.x / W) * chartWidth;
-    return Math.min(Math.max(px, TOOLTIP_HALF), chartWidth - TOOLTIP_HALF);
+    const half = tooltipWidth / 2 + TOOLTIP_MARGIN;
+    return Math.min(Math.max(px, half), chartWidth - half);
   });
 
   function onPointerMove(e: PointerEvent) {
@@ -148,16 +155,6 @@
   onpointerleave={() => (activeIndex = null)}
 >
   <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none">
-    <line
-      x1="0"
-      y1={RAIN_BOTTOM}
-      x2={W}
-      y2={RAIN_BOTTOM}
-      stroke={color}
-      stroke-width="1"
-      opacity="0.25"
-      vector-effect="non-scaling-stroke"
-    />
     {#each bars as b, i (b.x)}
       {#if b.h > 0}
         <rect
@@ -195,7 +192,11 @@
   </svg>
 
   {#if hovered}
-    <div class="tooltip" style:left="{tooltipLeft}px">
+    <div
+      class="tooltip"
+      style:left="{tooltipLeft}px"
+      bind:clientWidth={tooltipWidth}
+    >
       <WeatherIcon
         name={wmoToIcon(hovered.point.weatherCode, true)}
         size={16}

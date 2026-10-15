@@ -10,11 +10,13 @@
 
   interface Props {
     name: string;
-    size?: number;
+    /** Pixels, or a CSS length such as `var(--tile-icon)` for layout-driven sizes. */
+    size?: number | string;
     /** Highlight color. */
     primary?: string;
     /** Base color. */
     secondary?: string;
+    /** Accessible name; an empty string marks the icon as decorative. */
     label?: string;
   }
 
@@ -27,21 +29,23 @@
   }: Props = $props();
 
   const symbol = $derived(weatherSymbol(name));
+  const length = $derived(typeof size === 'number' ? `${size}px` : size);
 </script>
 
 <span
-  class="weather-multi-color"
+  class="weather-multi-color wi wi-{name}"
   style:--weather-primary-fill={primary}
   style:--weather-secondary-fill={secondary}
-  style:width="{size}px"
-  style:height="{size}px"
+  style:width={length}
+  style:height={length}
 >
   {#if symbol}
     <svg
-      role="img"
-      aria-label={label ?? name.replace(/-/g, ' ')}
-      width={size}
-      height={size}
+      role={label === '' ? undefined : 'img'}
+      aria-label={label === '' ? undefined : (label ?? name.replace(/-/g, ' '))}
+      aria-hidden={label === '' ? 'true' : undefined}
+      width="100%"
+      height="100%"
       viewBox={symbol.viewBox}
     >
       <!-- eslint-disable-next-line svelte/no-at-html-tags -- static, trusted sprite markup -->
@@ -56,18 +60,12 @@
     line-height: 0;
   }
 
-  /* Multi-color mechanism (mirrors weather-iconic-enhanced.css).
-     Selector order matters: only-child rules must win over first-child. */
-  .weather-multi-color :global(svg path:first-child),
-  .weather-multi-color :global(svg g:first-child path) {
+  /* Multi-color mechanism: weather-sprite.ts wraps the parts, so the two
+     tones follow the wrapper and the paths inherit their fill. */
+  .weather-multi-color :global(.hl) {
     fill: var(--weather-primary-fill);
   }
-  .weather-multi-color :global(svg path:nth-child(2)),
-  .weather-multi-color :global(svg g:nth-child(2) path) {
-    fill: var(--weather-secondary-fill);
-  }
-  .weather-multi-color :global(svg path:only-child),
-  .weather-multi-color :global(svg g:only-child path) {
+  .weather-multi-color :global(.base) {
     fill: var(--weather-secondary-fill);
   }
 </style>

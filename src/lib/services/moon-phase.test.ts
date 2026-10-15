@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { moonPhase, moonPhaseIcon } from './moon-phase';
+import {
+  daysUntilFullMoon,
+  moonIllumination,
+  moonPhase,
+  moonPhaseIcon,
+} from './moon-phase';
+
+describe('moonIllumination', () => {
+  it('is dark at new moon, half at the quarters and full at full moon', () => {
+    expect(moonIllumination(0)).toBeCloseTo(0, 5);
+    expect(moonIllumination(0.25)).toBeCloseTo(0.5, 5);
+    expect(moonIllumination(0.5)).toBeCloseTo(1, 5);
+    expect(moonIllumination(0.75)).toBeCloseTo(0.5, 5);
+  });
+});
+
+describe('daysUntilFullMoon', () => {
+  it('counts down to the next full moon (2026-01-03 10:03 UTC)', () => {
+    expect(daysUntilFullMoon(new Date(Date.UTC(2025, 11, 30, 10, 3)))).toBe(4);
+    expect(daysUntilFullMoon(new Date(Date.UTC(2026, 0, 3, 10, 3)))).toBe(0);
+  });
+  it('starts the next cycle the day after a full moon', () => {
+    expect(daysUntilFullMoon(new Date(Date.UTC(2026, 0, 4, 10, 3)))).toBe(29);
+  });
+});
 
 /** Known full moons (UTC): tolerance is one 8th-phase bucket. */
 describe('moonPhase', () => {

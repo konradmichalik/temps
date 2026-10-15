@@ -65,15 +65,25 @@ export function demoWeather(
   const hourStart = new Date(now);
   hourStart.setMinutes(0, 0, 0);
 
-  const hourly = Array.from({ length: 48 }, (_, i) => {
+  // The sunny demo stays completely dry, so it shows no rain bars at all.
+  const dry = scenario === 'sunny';
+  // Starts six hours back, like the API's midnight start, so trends have a past.
+  const hourly = Array.from({ length: 54 }, (_, k) => {
+    const i = k - 6;
     const t = new Date(hourStart.getTime() + i * 3_600_000);
     const wave = Math.sin((i / 24) * Math.PI * 2 - Math.PI / 2); // trough at start
+    // Daylight UV as a bell around 13:00; pressure falls in the wet scenarios.
+    const hour = t.getHours();
+    const sun = Math.max(0, Math.cos(((hour - 13) / 7) * (Math.PI / 2)));
     return {
       time: t,
       temperature:
         Math.round((s.temp + wave * 4 + Math.sin(i * 1.7) * 0.8) * 10) / 10,
       weatherCode: s.code,
-      precipitationProbability: s.code >= 51 ? 60 : 5,
+      precipitationProbability: s.code >= 51 ? 60 : dry ? 0 : 5,
+      pressure:
+        Math.round((1016 + (s.code >= 51 ? -0.6 : 0.4) * (i - 3)) * 10) / 10,
+      uvIndex: s.isDay ? Math.round(sun * 6 * 10) / 10 : 0,
     };
   });
 
@@ -94,7 +104,7 @@ export function demoWeather(
       sunrise,
       sunset,
       uvIndexMax: 4,
-      precipitationProbabilityMax: s.code >= 51 ? 70 : 10,
+      precipitationProbabilityMax: s.code >= 51 ? 70 : dry ? 0 : 10,
     };
   });
 
@@ -118,11 +128,13 @@ export function demoWeather(
       temperature: s.temp,
       apparentTemperature: s.temp - 2,
       humidity: 64,
+      dewPoint: s.temp - 6,
       weatherCode: s.code,
       isDay: s.isDay,
       windSpeed: 14,
+      windGusts: 28,
       windDirection: 225,
-      pressure: 1014,
+      pressure: hourly[6].pressure,
       uvIndex: s.isDay ? 4 : 0,
     },
     hourly,

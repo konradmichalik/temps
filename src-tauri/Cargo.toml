@@ -28,7 +28,6 @@ tauri-plugin-autostart = "2"
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3", features = [
   "NSWindow",
-  "NSPanel",
   "NSEvent",
   "NSResponder",
   "NSView",

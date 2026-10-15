@@ -4,6 +4,7 @@
  */
 import { fetchJson } from '../utils/fetch';
 import type { Place } from './open-meteo';
+import { leadingPollutant, type Pollutant } from './metrics';
 
 const URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -24,6 +25,8 @@ export interface PollenReading {
 export interface AirQuality {
   aqi: number | null;
   pm25: number | null;
+  /** Sub-index that drives the European AQI. */
+  leading: Pollutant | null;
   pollen: PollenReading[];
   fetchedAt: Date;
 }
@@ -52,21 +55,44 @@ export function aqiLabel(aqi: number, locale: 'en' | 'de'): string {
   return de ? 'extrem' : 'extreme';
 }
 
+type Current = Record<string, number | null>;
+
 interface Raw {
-  current?: Record<string, number | null>;
+  current?: Current;
 }
+
+const POLLUTANTS: Pollutant[] = [
+  'pm2_5',
+  'pm10',
+  'nitrogen_dioxide',
+  'ozone',
+  'sulphur_dioxide',
+];
 
 export async function fetchAirQuality(place: Place): Promise<AirQuality> {
   const params = new URLSearchParams({
     latitude: String(place.latitude),
     longitude: String(place.longitude),
-    current: ['european_aqi', 'pm2_5', ...POLLEN_KEYS].join(','),
+    current: [
+      'european_aqi',
+      'pm2_5',
+      ...POLLUTANTS.map((p) => `european_aqi_${p}`),
+      ...POLLEN_KEYS,
+    ].join(','),
   });
   const raw = await fetchJson<Raw>(`${URL}?${params}`);
-  const c = raw.current ?? {};
+  return toAirQuality(raw.current ?? {});
+}
+
+export function toAirQuality(c: Current): AirQuality {
   return {
     aqi: c.european_aqi ?? null,
     pm25: c.pm2_5 ?? null,
+    leading: leadingPollutant(
+      Object.fromEntries(
+        POLLUTANTS.map((p) => [p, c[`european_aqi_${p}`] ?? null]),
+      ),
+    ),
     pollen: POLLEN_KEYS.map((k) => ({ species: k, value: c[k] ?? 0 }))
       .filter((p) => p.value > 0)
       .sort((a, b) => b.value - a.value),

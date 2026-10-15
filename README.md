@@ -10,7 +10,7 @@
 
 ## ✨ Features
 
-- **Three screens** via CSS scroll-snap — swipe, or `⌘D` / arrow keys:
+- **Three screens** via CSS scroll-snap — swipe or drag with the mouse, or `⌘D` / arrow keys:
   - **Overview** — current temperature, condition, and a 4-day forecast. Tap a
     day for a slide-up sheet with high/low and rain chance.
   - **Hourly** — a hand-rolled, full-bleed SVG temperature line (no chart

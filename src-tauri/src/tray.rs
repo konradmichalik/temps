@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{
     image::Image,
-    menu::{MenuBuilder, MenuItemBuilder},
+    menu::{ContextMenu, MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     App, AppHandle, Emitter, Manager, PhysicalPosition,
 };
@@ -43,19 +43,22 @@ pub fn is_within_show_grace() -> bool {
         .is_some_and(|t| t.elapsed().as_millis() < SHOW_GRACE_MS)
 }
 
-/// Re-apply the NSPanel properties that can drift after macOS system events
-/// (sleep/wake, display reconfiguration, space changes). See beacon's notes:
-/// NSPanel defaults `hidesOnDeactivate` to true, and with Accessory activation
-/// the app is mostly "inactive" so the panel silently auto-hides; the level and
-/// collection behavior can be reset by the WindowServer.
+/// Re-apply the popover window properties that can drift after macOS system
+/// events (sleep/wake, display reconfiguration, space changes). With Accessory
+/// activation the app is mostly "inactive", so `hidesOnDeactivate` must stay
+/// off; the level and collection behavior can be reset by the WindowServer.
+///
+/// The popover stays tao's own window class. It is not converted to an
+/// NSPanel: `object_setClass` onto NSPanel is not allowed for it (tao's class
+/// adds an ivar and is KVO-observed), so only NSWindow API is used here.
 #[cfg(target_os = "macos")]
 fn ensure_panel_config(window: &tauri::WebviewWindow) {
-    use objc2_app_kit::{NSPanel, NSPopUpMenuWindowLevel, NSWindowCollectionBehavior};
+    use objc2::runtime::Sel;
+    use objc2_app_kit::{NSPopUpMenuWindowLevel, NSWindow, NSWindowCollectionBehavior};
     if let Ok(ns_window) = window.ns_window() {
         unsafe {
-            let panel = &*(ns_window as *const NSPanel);
+            let panel = &*(ns_window as *const NSWindow);
             panel.setHidesOnDeactivate(false);
-            panel.setFloatingPanel(true);
             panel.setLevel(NSPopUpMenuWindowLevel);
             panel.setCollectionBehavior(
                 NSWindowCollectionBehavior::CanJoinAllSpaces
@@ -63,7 +66,13 @@ fn ensure_panel_config(window: &tauri::WebviewWindow) {
                     | NSWindowCollectionBehavior::FullScreenAuxiliary
                     | NSWindowCollectionBehavior::IgnoresCycle,
             );
-            let _: () = objc2::msg_send![panel, _setPreventsActivation: true];
+            // Private API: keeps showing the popover from activating the app.
+            // Only sent where the window answers it, never as an unknown selector.
+            let prevents = Sel::register(c"_setPreventsActivation:");
+            let responds: bool = objc2::msg_send![panel, respondsToSelector: prevents];
+            if responds {
+                let _: () = objc2::msg_send![panel, _setPreventsActivation: true];
+            }
         }
     }
 }
@@ -85,10 +94,10 @@ fn show_and_focus(window: &tauri::WebviewWindow) {
 
     #[cfg(target_os = "macos")]
     {
-        use objc2_app_kit::NSPanel;
+        use objc2_app_kit::NSWindow;
         if let Ok(ns_window) = window.ns_window() {
             unsafe {
-                let panel = &*(ns_window as *const NSPanel);
+                let panel = &*(ns_window as *const NSWindow);
                 let null: *const objc2::runtime::AnyObject = std::ptr::null();
                 let _: () = objc2::msg_send![panel, orderOut: null];
             }
@@ -101,9 +110,9 @@ fn show_and_focus(window: &tauri::WebviewWindow) {
 
     #[cfg(target_os = "macos")]
     if let Ok(ns_window) = window.ns_window() {
-        use objc2_app_kit::NSPanel;
+        use objc2_app_kit::NSWindow;
         unsafe {
-            let panel = &*(ns_window as *const NSPanel);
+            let panel = &*(ns_window as *const NSWindow);
             panel.orderFrontRegardless();
 
             // Make the WKWebView (first subview of the content view) the first
@@ -134,10 +143,10 @@ pub fn is_panel_showing(window: &tauri::WebviewWindow) -> bool {
 
     #[cfg(target_os = "macos")]
     {
-        use objc2_app_kit::{NSPanel, NSPopUpMenuWindowLevel};
+        use objc2_app_kit::{NSPopUpMenuWindowLevel, NSWindow};
         if let Ok(ns_window) = window.ns_window() {
             unsafe {
-                let panel = &*(ns_window as *const NSPanel);
+                let panel = &*(ns_window as *const NSWindow);
                 if !panel.isVisible() {
                     return false;
                 }
@@ -186,10 +195,23 @@ pub fn create_tray(app: &App) -> Result<(), Box<dyn std::error::Error>> {
     let _tray = TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .icon_as_template(cfg!(target_os = "macos"))
-        .menu(&menu)
+        // The menu is deliberately not attached to the status item: macOS then
+        // opens it on every click, including the left one, and the click never
+        // reaches the tray handler. It is popped up on right click instead.
         .show_menu_on_left_click(false)
         .tooltip("Temps")
-        .on_tray_icon_event(|tray, event| {
+        .on_tray_icon_event(move |tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Right,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                if let Some(window) = tray.app_handle().get_webview_window("main") {
+                    let _ = menu.popup(window.as_ref().window());
+                }
+                return;
+            }
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,

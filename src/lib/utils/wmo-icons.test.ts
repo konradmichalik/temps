@@ -4,7 +4,27 @@ import {
   wmoToLabel,
   wmoToEffect,
   windDirectionIcon,
+  heroIconColors,
 } from './wmo-icons';
+
+describe('heroIconColors (icons on the colour band)', () => {
+  it('is white over translucent white by day', () => {
+    expect(heroIconColors('sun-cloud', true)).toEqual({
+      primary: '#ffffff',
+      secondary: 'rgba(255,255,255,0.5)',
+    });
+  });
+  it('lights the moon highlight at night', () => {
+    expect(heroIconColors('moon-cloud', false).primary).toBe('#f3d9a4');
+    expect(heroIconColors('cloud-rain', false).primary).toBe('#ffffff');
+  });
+  it('lights the whole single-part moon at night', () => {
+    expect(heroIconColors('moon', false)).toEqual({
+      primary: '#f3d9a4',
+      secondary: '#f3d9a4',
+    });
+  });
+});
 
 describe('wmoToIcon', () => {
   it('covers all documented WMO codes', () => {

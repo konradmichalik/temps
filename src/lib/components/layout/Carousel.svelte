@@ -1,11 +1,13 @@
 <script lang="ts">
   /**
    * Three screens via CSS scroll-snap — no carousel library, per project
-   * rule. Trackpad swiping is native; Cmd+D and arrow keys cycle screens
-   * (backwards compatible with the original shortcut). Active index via
-   * IntersectionObserver.
+   * rule. Touch and trackpad swiping are native; a mouse drags the screens
+   * with pointer events (scroll-snap alone cannot). Cmd+D and arrow keys cycle
+   * screens (backwards compatible with the original shortcut). Active index
+   * via IntersectionObserver.
    */
   import type { Snippet } from 'svelte';
+  import { dragTarget } from '../../utils/swipe';
 
   interface Props {
     screens: Snippet<[boolean]>[];
@@ -51,6 +53,62 @@
     goTo(activeIndex + delta);
   }
 
+  /** Pixels a mouse has to move before a press counts as a drag, not a click. */
+  const DRAG_START = 6;
+  let drag: { x: number; left: number; index: number; moved: boolean } | null =
+    null;
+  let dragging = $state(false);
+  let swallowClick = false;
+
+  function onPointerDown(e: PointerEvent) {
+    if (e.pointerType !== 'mouse' || e.button !== 0 || !container) return;
+    drag = {
+      x: e.clientX,
+      left: container.scrollLeft,
+      index: activeIndex,
+      moved: false,
+    };
+  }
+
+  function onPointerMove(e: PointerEvent) {
+    if (!drag || !container) return;
+    const dx = e.clientX - drag.x;
+    if (!drag.moved) {
+      if (Math.abs(dx) < DRAG_START) return;
+      drag.moved = true;
+      dragging = true;
+      container.setPointerCapture(e.pointerId);
+    }
+    container.scrollLeft = drag.left - dx;
+  }
+
+  function onPointerEnd(e: PointerEvent) {
+    const d = drag;
+    drag = null;
+    if (!d?.moved || !container) return;
+    dragging = false;
+    if (container.hasPointerCapture(e.pointerId)) {
+      container.releasePointerCapture(e.pointerId);
+    }
+    // The click that ends a drag must not press the button under the cursor.
+    swallowClick = true;
+    setTimeout(() => (swallowClick = false), 0);
+    goTo(
+      dragTarget(
+        d.index,
+        e.clientX - d.x,
+        container.clientWidth,
+        screens.length,
+      ),
+    );
+  }
+
+  function onClickCapture(e: MouseEvent) {
+    if (!swallowClick) return;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
   function onKeydown(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     if (
@@ -69,7 +127,18 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="carousel" bind:this={container}>
+<!-- Dragging is a pointer shortcut only; arrow keys and the dots do the same. -->
+<div
+  class="carousel"
+  role="presentation"
+  class:dragging
+  bind:this={container}
+  onpointerdown={onPointerDown}
+  onpointermove={onPointerMove}
+  onpointerup={onPointerEnd}
+  onpointercancel={onPointerEnd}
+  onclickcapture={onClickCapture}
+>
   {#each screens as screen, i (i)}
     <section>{@render screen(i === activeIndex)}</section>
   {/each}
@@ -99,9 +168,19 @@
   .carousel::-webkit-scrollbar {
     display: none;
   }
+  /* While a mouse drags, the snap points would fight every scroll step. */
+  .carousel.dragging {
+    scroll-snap-type: none;
+    cursor: grabbing;
+    user-select: none;
+  }
+  /* Each screen paints only inside its own slide: charts with
+     `overflow: visible` and the double-width waves would otherwise show at the
+     edge of the neighbouring screen. */
   section {
     position: relative;
     flex: 0 0 100%;
+    overflow: clip;
     scroll-snap-align: start;
     scroll-snap-stop: always;
     display: flex;
